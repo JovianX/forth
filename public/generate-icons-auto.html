@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-Generate PWA Icons</title>
+</head>
+<body>
+  <h1>Generating Icons...</h1>
+  <p>Icons will be downloaded automatically.</p>
+
+  <canvas id="icon192" width="192" height="192" style="display: none;"></canvas>
+  <canvas id="icon512" width="512" height="512" style="display: none;"></canvas>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const scale = size / 512;
+      
+      // Background circle
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Task list icon
+      const centerX = size / 2;
+      const centerY = size / 2;
+      
+      // Checkbox 1
+      ctx.fillStyle = 'white';
+      ctx.fillRect(centerX - 80 * scale, centerY - 120 * scale, 40 * scale, 40 * scale);
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2 * scale;
+      ctx.strokeRect(centerX - 80 * scale, centerY - 120 * scale, 40 * scale, 40 * scale);
+      
+      // Checkmark
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 4 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo((centerX - 65) * scale, (centerY - 105) * scale);
+      ctx.lineTo((centerX - 55) * scale, (centerY - 115) * scale);
+      ctx.lineTo((centerX - 45) * scale, (centerY - 105) * scale);
+      ctx.stroke();
+      
+      // Task line 1
+      ctx.fillStyle = 'white';
+      ctx.fillRect((centerX - 30) * scale, (centerY - 110) * scale, 100 * scale, 8 * scale);
+      
+      // Checkbox 2
+      ctx.fillStyle = 'white';
+      ctx.fillRect(centerX - 80 * scale, centerY - 60 * scale, 40 * scale, 40 * scale);
+      ctx.strokeStyle = 'white';
+      ctx.strokeRect(centerX - 80 * scale, centerY - 60 * scale, 40 * scale, 40 * scale);
+      
+      // Checkmark 2
+      ctx.strokeStyle = '#f97316';
+      ctx.beginPath();
+      ctx.moveTo((centerX - 65) * scale, (centerY - 45) * scale);
+      ctx.lineTo((centerX - 55) * scale, (centerY - 55) * scale);
+      ctx.lineTo((centerX - 45) * scale, (centerY - 45) * scale);
+      ctx.stroke();
+      
+      // Task line 2
+      ctx.fillStyle = 'white';
+      ctx.fillRect((centerX - 30) * scale, (centerY - 50) * scale, 80 * scale, 8 * scale);
+      
+      // Container/folder icon
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo((centerX - 60) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX - 100) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX - 100) * scale, (centerY + 60) * scale);
+      ctx.lineTo((centerX + 100) * scale, (centerY + 60) * scale);
+      ctx.lineTo((centerX + 100) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX + 60) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX + 50) * scale, centerY);
+      ctx.lineTo((centerX - 50) * scale, centerY);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Folder tab
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.moveTo((centerX - 50) * scale, centerY);
+      ctx.lineTo((centerX - 60) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX + 60) * scale, (centerY + 20) * scale);
+      ctx.lineTo((centerX + 50) * scale, centerY);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    function downloadIcon(size) {
+      return new Promise((resolve) => {
+        const canvas = document.getElementById(`icon${size}`);
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `icon-${size}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          resolve();
+        });
+      });
+    }
+    
+    // Generate and download icons on load
+    window.onload = async () => {
+      drawIcon(document.getElementById('icon192'), 192);
+      drawIcon(document.getElementById('icon512'), 512);
+      
+      await downloadIcon(192);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await downloadIcon(512);
+      
+      document.body.innerHTML = '<h1>Icons Generated!</h1><p>Please move icon-192.png and icon-512.png to the public directory.</p>';
+    };
+  </script>
+</body>
+</html>

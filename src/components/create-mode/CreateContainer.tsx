@@ -1,0 +1,112 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Folder } from 'lucide-react';
+import { useTaskContext } from '../../context/TaskContext';
+import { getNextContainerColorPreview } from '../../utils/taskUtils';
+
+interface CreateContainerProps {
+  parentId: string | null;
+  depth: number;
+  isCreating: boolean;
+  insertAfterId?: string | null;
+  onCreated?: () => void;
+  onCancel?: () => void;
+}
+
+export const CreateContainer: React.FC<CreateContainerProps> = ({
+  parentId,
+  depth,
+  isCreating,
+  insertAfterId,
+  onCreated,
+  onCancel,
+}) => {
+  const [name, setName] = useState('');
+  const { addContainer, containers } = useTaskContext();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get the color that this container will have when created
+  const previewColor = getNextContainerColorPreview(containers, parentId);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      addContainer(name.trim(), parentId, insertAfterId);
+      setName('');
+      onCreated?.();
+    }
+  };
+
+  const handleCancel = () => {
+    setName('');
+    onCancel?.();
+  };
+
+  useEffect(() => {
+    if (isCreating) {
+      setName('');
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }, [isCreating]);
+
+  if (!isCreating) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem', display: 'block' }}>
+      <div
+        className="flex items-center gap-2 py-2 px-4 rounded-md group border-l-4 transition-all"
+        style={{
+          marginLeft: `${depth * 24}px`,
+          borderLeftColor: previewColor,
+          backgroundColor: `${previewColor}15`,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = `${previewColor}15`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = `${previewColor}15`;
+        }}
+      >
+        <div className="w-[26px]" />
+        <Folder size={18} style={{ color: previewColor }} />
+        <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Container name..."
+            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium h-7"
+            style={{ lineHeight: '1.25rem' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleCancel();
+              }
+            }}
+            onBlur={(e) => {
+              // Cancel if empty, otherwise keep it open
+              if (!e.currentTarget.value.trim()) {
+                // Use setTimeout to allow submit button click to register first
+                setTimeout(() => {
+                  if (!e.currentTarget.value.trim()) {
+                    handleCancel();
+                  }
+                }, 200);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors h-7 flex items-center"
+            style={{ lineHeight: '1.25rem' }}
+          >
+            Add
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
