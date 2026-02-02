@@ -24,9 +24,12 @@ const pwaBasePathPlugin = () => {
         
         // Update start_url and icon paths with base path
         manifest.start_url = basePath === '/' ? '/' : basePath
+        manifest.scope = basePath === '/' ? '/' : basePath
         manifest.icons = manifest.icons.map((icon: any) => ({
           ...icon,
-          src: basePath === '/' ? icon.src : icon.src.replace(/^\//, basePath)
+          src: basePath === '/' ? icon.src : icon.src.replace(/^\//, basePath),
+          // Fix purpose field - can't be "any maskable", must be "any" or "maskable"
+          purpose: icon.purpose === 'any maskable' ? 'any' : icon.purpose
         }))
         
         writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))

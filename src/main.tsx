@@ -9,12 +9,15 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Use base URL from Vite config (handles GitHub Pages base path)
     const baseUrl = import.meta.env.BASE_URL;
-    navigator.serviceWorker.register(`${baseUrl}sw.js`)
+    const swPath = `${baseUrl}sw.js`;
+    const scope = baseUrl;
+    
+    navigator.serviceWorker.register(swPath, { scope })
       .then((registration) => {
         console.log('Service Worker registered successfully:', registration.scope);
       })
       .catch((error) => {
-        console.log('Service Worker registration failed:', error);
+        console.error('Service Worker registration failed:', error);
       });
   });
 }
