@@ -7,7 +7,9 @@ import { TaskProvider } from './context/TaskContext.tsx'
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    // Use base URL from Vite config (handles GitHub Pages base path)
+    const baseUrl = import.meta.env.BASE_URL;
+    navigator.serviceWorker.register(`${baseUrl}sw.js`)
       .then((registration) => {
         console.log('Service Worker registered successfully:', registration.scope);
       })

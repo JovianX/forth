@@ -7,6 +7,14 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+// Get base path from scope
+const getBasePath = () => {
+  const scope = self.registration?.scope || self.location.pathname.replace(/\/sw\.js$/, '');
+  return scope.endsWith('/') ? scope : scope + '/';
+};
+
+const BASE_PATH = getBasePath();
+
 // Install event - cache resources (non-blocking)
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -14,10 +22,10 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         // Try to cache main resources, but don't fail if some are missing
         return Promise.allSettled([
-          cache.add('/'),
-          cache.add('/index.html'),
+          cache.add(BASE_PATH),
+          cache.add(BASE_PATH + 'index.html'),
         ]).then(() => {
-          console.log('Service Worker cache initialized');
+          console.log('Service Worker cache initialized with base path:', BASE_PATH);
         });
       })
       .catch((error) => {
@@ -53,7 +61,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // If both fail, return offline page or fallback
         if (event.request.destination === 'document') {
-          return caches.match('/index.html');
+          return caches.match(BASE_PATH + 'index.html');
         }
       })
   );
