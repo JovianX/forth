@@ -1,4 +1,4 @@
-const CACHE_NAME = 'forth-v1';
+const CACHE_NAME = 'forth-v2';
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
@@ -50,19 +50,49 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for HTML, cache first for assets
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // If both fail, return offline page or fallback
-        if (event.request.destination === 'document') {
-          return caches.match(BASE_PATH + 'index.html');
-        }
-      })
-  );
+  const url = new URL(event.request.url);
+  const isHTML = event.request.destination === 'document' || url.pathname.endsWith('.html');
+  
+  if (isHTML) {
+    // Network first for HTML files to get latest asset references
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the fresh HTML
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache if network fails
+          return caches.match(event.request);
+        })
+    );
+  } else {
+    // Cache first for assets (JS, CSS, images, etc.)
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          // Return cached version or fetch from network
+          return response || fetch(event.request).then((fetchResponse) => {
+            // Cache the new asset
+            const responseClone = fetchResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+            return fetchResponse;
+          });
+        })
+        .catch(() => {
+          // If both fail, return offline page or fallback
+          if (event.request.destination === 'document') {
+            return caches.match(BASE_PATH + 'index.html');
+          }
+        })
+    );
+  }
 });
