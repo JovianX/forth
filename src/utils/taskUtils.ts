@@ -125,3 +125,39 @@ export const validateContainerParent = (
 
   return true;
 };
+
+// Priority utility functions
+// Simple priority system: higher number = higher priority (appears first)
+
+/**
+ * Gets the next priority for a new task in a container
+ * Returns 0 for empty containers, otherwise maxPriority + 1
+ */
+export const getNextPriority = (existingPriorities: number[]): number => {
+  if (existingPriorities.length === 0) return 0;
+  const maxPriority = Math.max(...existingPriorities);
+  return maxPriority + 1;
+};
+
+/**
+ * Calculates a priority between two priorities for insertion
+ */
+export const getPriorityBetween = (higherPriority: number, lowerPriority: number): number => {
+  return (higherPriority + lowerPriority) / 2;
+};
+
+/**
+ * Calculates priority for inserting after a task (below it)
+ * Returns a priority lower than the given priority
+ */
+export const getPriorityAfter = (priority: number): number => {
+  return priority - 1;
+};
+
+/**
+ * Calculates priority for inserting before a task (above it)
+ * Returns a priority higher than the given priority
+ */
+export const getPriorityBefore = (priority: number): number => {
+  return priority + 1;
+};

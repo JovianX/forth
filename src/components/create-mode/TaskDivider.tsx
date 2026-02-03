@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { CreateTask } from './CreateTask';
+import { useTaskContext } from '../../context/TaskContext';
+import { getPriorityBetween, getPriorityAfter, getPriorityBefore } from '../../utils/taskUtils';
 
 interface TaskDividerProps {
   containerId: string;
@@ -19,6 +21,7 @@ export const TaskDivider: React.FC<TaskDividerProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const { tasks } = useTaskContext();
 
   const handleClick = () => {
     setIsCreating(true);
@@ -32,18 +35,32 @@ export const TaskDivider: React.FC<TaskDividerProps> = ({
     setIsCreating(false);
   };
 
-  // Calculate priority between the two tasks
+  // Calculate priority for inserting a task at this position
+  // Note: Priorities are sorted DESCENDING (highest first), so:
+  // - To insert AFTER a task (below it visually), we need a LOWER priority
+  // - To insert BEFORE a task (above it visually), we need a HIGHER priority
+  // 
+  // afterPriority = task that appears ABOVE the insertion point (has HIGHER priority)
+  // beforePriority = task that appears BELOW the insertion point (has LOWER priority)
   const getPriority = (): number | undefined => {
+    const containerTasks = tasks.filter((t) => t.containerId === containerId);
+
+    // Empty container - let addTask use default (0)
+    if (containerTasks.length === 0) {
+      return undefined;
+    }
+
     if (afterPriority !== undefined && beforePriority !== undefined) {
       // Insert between two tasks - use average
-      return (afterPriority + beforePriority) / 2;
+      return getPriorityBetween(afterPriority, beforePriority);
     } else if (afterPriority !== undefined) {
-      // Insert after a task - use a value slightly higher
-      return afterPriority + 0.5;
+      // Insert AFTER a task (below it) - need LOWER priority
+      return getPriorityAfter(afterPriority);
     } else if (beforePriority !== undefined) {
-      // Insert before a task - use a value slightly lower
-      return beforePriority - 0.5;
+      // Insert BEFORE a task (above it) - need HIGHER priority
+      return getPriorityBefore(beforePriority);
     }
+    
     // No priority specified - let addTask use default
     return undefined;
   };

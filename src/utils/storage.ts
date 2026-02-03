@@ -81,6 +81,8 @@ export const loadState = (): AppState | null => {
       state.expandedContainers = [];
     }
     
+    // No priority migration needed - priorities can be any number
+    
     return state;
   } catch (err) {
     console.error('Error loading state from localStorage:', err);

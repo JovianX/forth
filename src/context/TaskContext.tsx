@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
 import { Task, Container, Mode, NoteBlock } from '../types';
-import { generateId, getTimestamp, validateContainerParent, getNextContainerColor } from '../utils/taskUtils';
+import { 
+  generateId, 
+  getTimestamp, 
+  validateContainerParent, 
+  getNextContainerColor,
+  getNextPriority,
+  getPriorityBetween,
+  getPriorityAfter,
+  getPriorityBefore
+} from '../utils/taskUtils';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface TaskContextType {
@@ -172,36 +181,65 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [setState]);
 
   const addTask = useCallback((title: string, containerId: string, priority?: number, type: 'task' | 'note' | 'text-block' = 'task', content?: string) => {
-    const existingTasks = state.tasks.filter((t) => t.containerId === containerId);
-    
-    let taskPriority: number;
-    if (priority !== undefined) {
-      taskPriority = priority;
-    } else {
-      const maxPriority = existingTasks.length > 0
-        ? Math.max(...existingTasks.map((t) => t.priority))
-        : -1;
-      taskPriority = maxPriority + 1;
-    }
+    setState((prev) => {
+      const existingTasks = prev.tasks.filter((t) => t.containerId === containerId);
+      const existingPriorities = existingTasks.map((t) => t.priority);
+      
+      let taskPriority: number;
+      if (priority !== undefined && priority !== null && !isNaN(priority)) {
+        // Use the provided priority directly
+        taskPriority = priority;
+      } else {
+        // No priority provided - use getNextPriority which handles empty containers
+        taskPriority = getNextPriority(existingPriorities);
+      }
 
-    const newTask: Task = {
-      id: generateId(),
-      title,
-      completed: false,
-      priority: taskPriority,
-      containerId,
-      createdAt: getTimestamp(),
-      type: type || 'task',
-      content: (type === 'note' || type === 'text-block') ? (content || '') : undefined,
-      blocks: type === 'note' ? [] : undefined,
-      isQuickTask: false,
-    };
+      const newTask: Task = {
+        id: generateId(),
+        title,
+        completed: false,
+        priority: taskPriority,
+        containerId,
+        createdAt: getTimestamp(),
+        type: type || 'task',
+        content: (type === 'note' || type === 'text-block') ? (content || '') : undefined,
+        blocks: type === 'note' ? [] : undefined,
+        isQuickTask: false,
+      };
 
-    setState((prev) => ({
-      ...prev,
-      tasks: [...prev.tasks, newTask],
-    }));
-  }, [state.tasks, setState]);
+      // If a specific priority was provided, insert at the correct position
+      if (priority !== undefined && priority !== null && !isNaN(priority) && existingTasks.length > 0) {
+        // Get all tasks in the container, sorted by priority (descending - highest first)
+        const containerTasks = [...existingTasks].sort((a, b) => b.priority - a.priority);
+        
+        // Find the insertion index: insert before the first task with priority <= taskPriority
+        let insertIndex = containerTasks.length;
+        for (let i = 0; i < containerTasks.length; i++) {
+          if (taskPriority >= containerTasks[i].priority) {
+            insertIndex = i;
+            break;
+          }
+        }
+        
+        // Insert the new task at the calculated position
+        containerTasks.splice(insertIndex, 0, newTask);
+        
+        // Combine with tasks from other containers (keep them unchanged)
+        const otherTasks = prev.tasks.filter((t) => t.containerId !== containerId);
+        
+        return {
+          ...prev,
+          tasks: [...otherTasks, ...containerTasks],
+        };
+      }
+
+      // No specific priority - just add to the end
+      return {
+        ...prev,
+        tasks: [...prev.tasks, newTask],
+      };
+    });
+  }, [setState]);
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
     setState((prev) => ({
@@ -231,16 +269,10 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const task = prev.tasks.find((t) => t.id === taskId);
       if (!task) return prev;
 
+      // Update the task with the new priority
       const updatedTasks = prev.tasks.map((t) => {
         if (t.id === taskId) {
           return { ...t, priority: newPriority };
-        }
-        // Adjust other tasks' priorities if needed
-        if (t.priority >= newPriority && t.priority < task.priority) {
-          return { ...t, priority: t.priority + 1 };
-        }
-        if (t.priority <= newPriority && t.priority > task.priority) {
-          return { ...t, priority: t.priority - 1 };
         }
         return t;
       });
@@ -259,17 +291,18 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (direction === 'down' && taskIndex === sortedTasks.length - 1) return prev;
 
       const targetIndex = direction === 'up' ? taskIndex - 1 : taskIndex + 1;
+      const targetTask = sortedTasks[targetIndex];
+      const currentTask = sortedTasks[taskIndex];
       
-      // Swap the tasks in the sorted array
-      [sortedTasks[taskIndex], sortedTasks[targetIndex]] = [
-        sortedTasks[targetIndex],
-        sortedTasks[taskIndex],
-      ];
-
-      // Normalize priorities: reassign sequential priorities from highest to lowest
+      // Swap priorities
       const updatedTasks = prev.tasks.map((t) => {
-        const newIndex = sortedTasks.findIndex((st) => st.id === t.id);
-        return { ...t, priority: sortedTasks.length - 1 - newIndex };
+        if (t.id === taskId) {
+          return { ...t, priority: targetTask.priority };
+        }
+        if (t.id === targetTask.id) {
+          return { ...t, priority: currentTask.priority };
+        }
+        return t;
       });
 
       return { ...prev, tasks: updatedTasks };
@@ -288,15 +321,30 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (activeIndex === -1 || overIndex === -1) return prev;
 
-      // Remove active task from its position
-      const [removed] = sortedTasks.splice(activeIndex, 1);
-      // Insert it at the new position
-      sortedTasks.splice(overIndex, 0, removed);
+      const activeTask = sortedTasks[activeIndex];
+      const overTask = sortedTasks[overIndex];
 
-      // Normalize priorities: reassign sequential priorities from highest to lowest
+      // Calculate new priority for the active task
+      let newPriority: number;
+      if (overIndex === 0) {
+        // Moving to top - use priority higher than the top task
+        newPriority = overTask.priority + 1;
+      } else if (overIndex === sortedTasks.length - 1) {
+        // Moving to bottom - use priority lower than the bottom task
+        newPriority = overTask.priority - 1;
+      } else {
+        // Moving to middle - use average of adjacent tasks
+        const nextTask = sortedTasks[overIndex + (activeIndex < overIndex ? 0 : 1)];
+        const prevTask = sortedTasks[overIndex - (activeIndex > overIndex ? 0 : 1)];
+        newPriority = (nextTask.priority + prevTask.priority) / 2;
+      }
+
+      // Update the active task's priority
       const updatedTasks = prev.tasks.map((t) => {
-        const newIndex = sortedTasks.findIndex((st) => st.id === t.id);
-        return { ...t, priority: sortedTasks.length - 1 - newIndex };
+        if (t.id === activeId) {
+          return { ...t, priority: newPriority };
+        }
+        return t;
       });
 
       return { ...prev, tasks: updatedTasks };
@@ -317,28 +365,30 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (activeIndex === -1 || overIndex === -1) return prev;
 
-      // Get the priority range for this container to maintain its position relative to other containers
-      const minPriority = Math.min(...containerTasks.map((t) => t.priority));
-      const maxPriority = Math.max(...containerTasks.map((t) => t.priority));
+      const activeTask = containerTasks[activeIndex];
+      const overTask = containerTasks[overIndex];
 
-      // Remove active task from its position
-      const [removed] = containerTasks.splice(activeIndex, 1);
-      // Insert it at the new position
-      containerTasks.splice(overIndex, 0, removed);
+      // Calculate new priority for the active task
+      let newPriority: number;
+      if (overIndex === 0) {
+        // Moving to top - use priority higher than the top task
+        newPriority = overTask.priority + 1;
+      } else if (overIndex === containerTasks.length - 1) {
+        // Moving to bottom - use priority lower than the bottom task
+        newPriority = overTask.priority - 1;
+      } else {
+        // Moving to middle - use average of adjacent tasks
+        const nextTask = containerTasks[overIndex + (activeIndex < overIndex ? 0 : 1)];
+        const prevTask = containerTasks[overIndex - (activeIndex > overIndex ? 0 : 1)];
+        newPriority = (nextTask.priority + prevTask.priority) / 2;
+      }
 
-      // Reassign priorities within the same range, maintaining the container's position
+      // Update the active task's priority
       const updatedTasks = prev.tasks.map((t) => {
-        if (t.containerId !== containerId) {
-          return t; // Don't change tasks in other containers
+        if (t.id === activeId) {
+          return { ...t, priority: newPriority };
         }
-        const newIndex = containerTasks.findIndex((st) => st.id === t.id);
-        // Reassign priorities sequentially within the same range
-        if (containerTasks.length === 1) {
-          return { ...t, priority: maxPriority };
-        }
-        const priorityRange = maxPriority - minPriority;
-        const priorityStep = priorityRange / (containerTasks.length - 1);
-        return { ...t, priority: Math.round(maxPriority - (newIndex * priorityStep)) };
+        return t;
       });
 
       return { ...prev, tasks: updatedTasks };
@@ -411,16 +461,17 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const task = prev.tasks.find((t) => t.id === taskId);
       if (!task || task.containerId === targetContainerId) return prev;
 
-      // Get max priority in target container
+      // Get priorities in target container
       const targetContainerTasks = prev.tasks.filter((t) => t.containerId === targetContainerId);
-      const maxPriority = targetContainerTasks.length > 0
-        ? Math.max(...targetContainerTasks.map((t) => t.priority))
-        : -1;
+      const existingPriorities = targetContainerTasks.map((t) => t.priority);
+      
+      // Get next priority for the moved task (highest priority = appears first)
+      const newPriority = getNextPriority(existingPriorities);
 
-      // Update task's container and assign it the highest priority in the new container
+      // Update task's container and assign it the appropriate priority
       const updatedTasks = prev.tasks.map((t) => {
         if (t.id === taskId) {
-          return { ...t, containerId: targetContainerId, priority: maxPriority + 1 };
+          return { ...t, containerId: targetContainerId, priority: newPriority };
         }
         return t;
       });
