@@ -1375,7 +1375,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick,
                   onClick={() => setMode(m.value)}
                   className={`
                     flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-md font-medium text-sm flex-1 sm:flex-initial
-                    transition-all duration-200
+                    transition-all duration-200 box-border
                     ${mode === m.value
                       ? 'bg-white shadow-md'
                       : ''
@@ -1388,6 +1388,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick,
                       }
                     : {
                         color: `${primaryDark}CC`,
+                        border: `1px solid transparent`,
                       }
                   }
                   onMouseEnter={(e) => {
