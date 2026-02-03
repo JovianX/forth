@@ -5,10 +5,7 @@ import {
   getTimestamp, 
   validateContainerParent, 
   getNextContainerColor,
-  getNextPriority,
-  getPriorityBetween,
-  getPriorityAfter,
-  getPriorityBefore
+  getNextPriority
 } from '../utils/taskUtils';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -321,7 +318,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (activeIndex === -1 || overIndex === -1) return prev;
 
-      const activeTask = sortedTasks[activeIndex];
       const overTask = sortedTasks[overIndex];
 
       // Calculate new priority for the active task
@@ -365,7 +361,6 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (activeIndex === -1 || overIndex === -1) return prev;
 
-      const activeTask = containerTasks[activeIndex];
       const overTask = containerTasks[overIndex];
 
       // Calculate new priority for the active task
