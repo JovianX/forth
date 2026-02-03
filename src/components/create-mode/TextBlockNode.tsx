@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, AlignLeft } from 'lucide-react';
 import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
+import { WysiwygEditor } from '../shared/WysiwygEditor';
 
 interface TextBlockNodeProps {
   task: Task;
@@ -15,7 +16,6 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   const { deleteTask, updateTask, containers } = useTaskContext();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(task.content || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     attributes,
@@ -37,11 +37,6 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     backgroundColor: 'transparent',
   };
 
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [isEditing]);
 
   useEffect(() => {
     setContent(task.content || '');
@@ -78,7 +73,8 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     setIsEditing(false);
   };
 
-  const hasContent = content.trim().length > 0;
+  // Check if content has actual text (strip HTML tags)
+  const hasContent = content.replace(/<[^>]*>/g, '').trim().length > 0;
 
   return (
     <div
@@ -101,7 +97,8 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         // Don't toggle if clicking on interactive elements
         const target = e.target as HTMLElement;
         if (
-          target.closest('textarea') ||
+          target.closest('.ql-editor') ||
+          target.closest('.ql-toolbar') ||
           target.closest('button') ||
           target.closest('[data-drag-handle]') ||
           isEditing
@@ -126,24 +123,24 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       </div>
       <div className="flex-1 min-w-0">
         {isEditing ? (
-          <div className="flex flex-col">
-            <textarea
-              ref={textareaRef}
+          <div 
+            className="flex flex-col"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancel();
+              }
+            }}
+            tabIndex={-1}
+          >
+            <WysiwygEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               onBlur={handleSave}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  handleCancel();
-                } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  handleSave();
-                }
-              }}
-              rows={Math.max(2, content.split('\n').length || 1)}
-              className="w-full px-1 py-1 bg-transparent border-none outline-none focus:outline-none text-gray-700 resize-none min-h-[2rem]"
-              onClick={(e) => e.stopPropagation()}
+              onSave={handleSave}
               placeholder="Write text..."
+              className="w-full"
+              autoFocus={true}
             />
             <div className="flex items-center gap-1.5 mt-1 px-1 text-xs text-gray-400">
               <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
@@ -163,11 +160,11 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           </div>
         ) : (
           <div
-            className="px-1 py-1 text-gray-700 cursor-text whitespace-pre-wrap min-h-[1.5rem]"
+            className="cursor-text wysiwyg-content"
             title="Click to edit"
-          >
-            {hasContent ? content : <span className="text-gray-400 italic">Empty text block - click to edit</span>}
-          </div>
+            dangerouslySetInnerHTML={{ __html: hasContent ? content : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
+            onClick={() => setIsEditing(true)}
+          />
         )}
       </div>
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">

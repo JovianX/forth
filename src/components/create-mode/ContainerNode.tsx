@@ -6,7 +6,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronRight, Folder, Trash2, CheckSquare, FileText, AlignLeft, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, Trash2, CheckSquare, AlignLeft, GripVertical } from 'lucide-react';
 import { Container } from '../../types';
 import { TaskNode } from './TaskNode';
 import { NoteNode } from './NoteNode';

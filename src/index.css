@@ -14,3 +14,123 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Styles for rendering HTML content from WYSIWYG editor */
+/* Match editor styles exactly */
+.wysiwyg-content {
+  color: #374151;
+  padding: 0.25rem 0.25rem;
+  min-height: 1.5rem;
+  line-height: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.wysiwyg-content p {
+  margin: 0.5em 0;
+}
+
+.wysiwyg-content p:first-child {
+  margin-top: 0;
+}
+
+.wysiwyg-content p:last-child {
+  margin-bottom: 0;
+}
+
+.wysiwyg-content h1, .wysiwyg-content h2, .wysiwyg-content h3 {
+  margin: 0.75em 0 0.5em 0;
+  font-weight: 600;
+}
+
+.wysiwyg-content h1:first-child, .wysiwyg-content h2:first-child, .wysiwyg-content h3:first-child {
+  margin-top: 0;
+}
+
+.wysiwyg-content h1 {
+  font-size: 1.5em;
+}
+
+.wysiwyg-content h2 {
+  font-size: 1.25em;
+}
+
+.wysiwyg-content h3 {
+  font-size: 1.1em;
+}
+
+/* Match Quill's exact list styling using pseudo-elements */
+/* Reduced indentation for better visual balance */
+.wysiwyg-content ul, .wysiwyg-content ol {
+  margin: 0.5em 0;
+  padding-left: 0;
+  list-style-type: none;
+}
+
+.wysiwyg-content li {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+  list-style: none;
+  position: relative;
+}
+
+/* Bullet lists - match Quill's exact styling with larger, more visible bullets */
+.wysiwyg-content ul li::before {
+  content: "\2022";
+  display: inline-block;
+  margin-left: -1.5em;
+  margin-right: 0.3em;
+  text-align: right;
+  white-space: nowrap;
+  width: 1.2em;
+  color: #374151;
+  font-size: 1.4em;
+  font-weight: bold;
+  line-height: 0.8;
+  vertical-align: middle;
+}
+
+/* Numbered lists - match Quill's exact styling with counter */
+.wysiwyg-content ol {
+  counter-reset: list-0;
+}
+
+.wysiwyg-content ol li {
+  counter-increment: list-0;
+}
+
+.wysiwyg-content ol li::before {
+  content: counter(list-0, decimal) ". ";
+  display: inline-block;
+  margin-left: -1.5em;
+  margin-right: 0.3em;
+  text-align: right;
+  white-space: nowrap;
+  width: 1.2em;
+  color: #374151;
+}
+
+.wysiwyg-content a {
+  color: #3b82f6 !important;
+  text-decoration: underline;
+}
+
+.wysiwyg-content a:hover {
+  color: #2563eb;
+}
+
+.wysiwyg-content strong {
+  font-weight: 600;
+}
+
+.wysiwyg-content em {
+  font-style: italic;
+}
+
+.wysiwyg-content u {
+  text-decoration: underline;
+}
+
+.wysiwyg-content s {
+  text-decoration: line-through;
+}

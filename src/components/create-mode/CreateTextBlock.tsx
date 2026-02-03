@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlignLeft } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
+import { WysiwygEditor } from '../shared/WysiwygEditor';
 
 interface CreateTextBlockProps {
   containerId: string;
@@ -21,14 +22,15 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
 }) => {
   const [content, setContent] = useState('');
   const { addTask, containers } = useTaskContext();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const container = containers.find((c) => c.id === containerId);
   const containerColor = container?.color || '#3B82F6';
 
   const handleSubmit = () => {
-    if (content.trim()) {
-      addTask('', containerId, priority, 'text-block', content.trim());
+    // Check if content has actual text (strip HTML tags)
+    const textContent = content.replace(/<[^>]*>/g, '').trim();
+    if (textContent) {
+      addTask('', containerId, priority, 'text-block', content);
       setContent('');
       onCreated?.();
     } else {
@@ -44,11 +46,6 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   useEffect(() => {
     if (isCreating) {
       setContent('');
-      if (textareaRef.current) {
-        setTimeout(() => {
-          textareaRef.current?.focus();
-        }, 0);
-      }
     }
   }, [isCreating]);
 
@@ -78,32 +75,27 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex flex-col">
-          <textarea
-            ref={textareaRef}
+          <WysiwygEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={Math.max(2, content.split('\n').length || 1)}
-            className="w-full px-1 py-1 bg-transparent border-none outline-none focus:outline-none text-gray-700 resize-none min-h-[2rem]"
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                handleCancel();
-              } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            onBlur={(e) => {
-              // Cancel if empty
-              if (!e.currentTarget.value.trim()) {
+            onChange={setContent}
+            onSave={handleSubmit}
+            onBlur={() => {
+              // Check if empty and cancel, otherwise submit
+              const textContent = content.replace(/<[^>]*>/g, '').trim();
+              if (!textContent) {
                 setTimeout(() => {
-                  if (!e.currentTarget.value.trim()) {
+                  const currentTextContent = content.replace(/<[^>]*>/g, '').trim();
+                  if (!currentTextContent) {
                     handleCancel();
                   }
                 }, 200);
+              } else {
+                handleSubmit();
               }
             }}
-            onClick={(e) => e.stopPropagation()}
             placeholder="Write text..."
+            className="w-full"
+            autoFocus={true}
           />
           <div className="flex items-center gap-1.5 mt-1 px-1 text-xs text-gray-400">
             <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">

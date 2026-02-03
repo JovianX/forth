@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { NoteBlock } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
+import { WysiwygEditor } from '../shared/WysiwygEditor';
 
 interface NoteBlockProps {
   block: NoteBlock;
@@ -20,7 +21,6 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(block.type === 'text' ? (block.content || '') : (block.taskTitle || ''));
   const inputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     attributes,
@@ -39,9 +39,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
 
   useEffect(() => {
     if (isEditing) {
-      if (block.type === 'text' && textareaRef.current) {
-        textareaRef.current.focus();
-      } else if (block.type === 'task' && inputRef.current) {
+      if (block.type === 'task' && inputRef.current) {
         inputRef.current.focus();
         const length = inputRef.current.value.length;
         inputRef.current.setSelectionRange(length, length);
@@ -79,9 +77,6 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
     if (e.key === 'Escape') {
       handleCancel();
     } else if (e.key === 'Enter' && block.type === 'task' && !e.shiftKey) {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Enter' && block.type === 'text' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSave();
     }
@@ -149,6 +144,8 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
   }
 
   // Text block
+  const hasTextContent = block.type === 'text' ? (text.replace(/<[^>]*>/g, '').trim().length > 0) : false;
+  
   return (
     <div
       ref={setNodeRef}
@@ -156,16 +153,14 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
       className="py-1 group/block"
     >
       {isEditing ? (
-        <textarea
-          ref={textareaRef}
+        <WysiwygEditor
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          rows={Math.max(2, text.split('\n').length || 1)}
-          className="w-full px-1 py-1 bg-transparent border-none outline-none focus:outline-none text-gray-700 resize-none"
-          onClick={(e) => e.stopPropagation()}
+          onSave={handleSave}
           placeholder="Write text..."
+          className="w-full"
+          autoFocus={true}
         />
       ) : (
         <div className="flex items-start gap-2">
@@ -178,12 +173,11 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             <GripVertical size={14} />
           </div>
           <div
-            className="flex-1 px-1 py-1 text-gray-700 cursor-text whitespace-pre-wrap min-h-[1.5rem]"
+            className="flex-1 cursor-text wysiwyg-content"
             onClick={() => setIsEditing(true)}
             title="Click to edit"
-          >
-            {text || <span className="text-gray-400 italic">Empty text block</span>}
-          </div>
+            dangerouslySetInnerHTML={{ __html: hasTextContent ? text : '<span class="text-gray-400 italic">Empty text block</span>' }}
+          />
           <button
             onClick={(e) => {
               e.stopPropagation();
