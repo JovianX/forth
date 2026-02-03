@@ -129,7 +129,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`py-2 px-4 rounded-md group border-l-2 border-purple-300 bg-purple-50/20 hover:bg-purple-50/40 transition-colors cursor-pointer ${
+      className={`py-1.5 px-4 rounded-md group border-l-2 border-purple-300 bg-purple-50/20 hover:bg-purple-50/40 transition-colors cursor-pointer ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
       onClick={handleNoteClick}
@@ -264,7 +264,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
             e.stopPropagation();
             deleteTask(task.id);
           }}
-          className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0"
+          className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0 ml-auto"
           aria-label="Delete note"
         >
           <Trash2 size={16} />

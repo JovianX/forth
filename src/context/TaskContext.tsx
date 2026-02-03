@@ -241,7 +241,11 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
     setState((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      tasks: prev.tasks.map((t) => 
+        t.id === id 
+          ? { ...t, ...updates, updatedAt: getTimestamp() } 
+          : t
+      ),
     }));
   }, [setState]);
 

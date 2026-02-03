@@ -13,7 +13,6 @@ import { NoteNode } from './NoteNode';
 import { TextBlockNode } from './TextBlockNode';
 import { CreateContainer } from './CreateContainer';
 import { CreateTask } from './CreateTask';
-import { CreateNote } from './CreateNote';
 import { CreateTextBlock } from './CreateTextBlock';
 import { TaskDivider } from './TaskDivider';
 import { useTaskContext } from '../../context/TaskContext';
@@ -33,7 +32,6 @@ interface ContainerNodeProps {
 
 export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, activeDragId, overId }) => {
   const [isCreatingTask, setIsCreatingTask] = useState(false);
-  const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [isCreatingTextBlock, setIsCreatingTextBlock] = useState(false);
   const [isCreatingContainer, setIsCreatingContainer] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -121,7 +119,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
   };
 
   return (
-    <div className="mb-2">
+    <div className="mb-0.5">
       <div
         ref={setNodeRef}
         style={{
@@ -131,7 +129,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           borderLeftWidth: isDraggingOverContainer ? '6px' : '4px',
           backgroundColor: isDraggingOverContainer ? containerLightColor : 'transparent',
         }}
-        className={`flex items-center gap-2 py-2 px-4 rounded-md group border-l-4 transition-all cursor-pointer ${
+        className={`flex items-center gap-2 py-1.5 px-4 rounded-md group border-l-4 transition-all cursor-pointer ${
           isDraggingOverContainer ? 'shadow-lg scale-[1.02]' : ''
         }`}
         onClick={(e) => {
@@ -214,7 +212,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           />
         ) : (
           <span
-            className="inline-block font-medium cursor-text px-1 py-0.5 edit-text"
+            className="flex-1 font-medium cursor-text px-1 py-0.5 edit-text"
             style={{ color: containerDarkColor }}
             onClick={(e) => {
               e.stopPropagation();
@@ -243,24 +241,6 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
             aria-label="Add task"
           >
             <CheckSquare size={16} />
-          </button>
-          <button
-            onClick={() => setIsCreatingNote(true)}
-            className="p-1 rounded transition-colors"
-            style={{
-              color: getContainerColorWithOpacity(container.color, 0.6),
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = containerDarkColor;
-              e.currentTarget.style.backgroundColor = containerHoverColor;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = getContainerColorWithOpacity(container.color, 0.6);
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            aria-label="Add note"
-          >
-            <FileText size={16} />
           </button>
           <button
             onClick={() => setIsCreatingTextBlock(true)}
@@ -298,14 +278,14 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           >
             <Folder size={16} />
           </button>
-          <button
-            onClick={() => deleteContainer(container.id)}
-            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all"
-            aria-label="Delete container"
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
+        <button
+          onClick={() => deleteContainer(container.id)}
+          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100 ml-auto"
+          aria-label="Delete container"
+        >
+          <Trash2 size={16} />
+        </button>
       </div>
 
       {isExpanded && (
@@ -317,15 +297,6 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
               isCreating={isCreatingTask}
               onCreated={() => setIsCreatingTask(false)}
               onCancel={() => setIsCreatingTask(false)}
-            />
-          )}
-          {isCreatingNote && (
-            <CreateNote
-              containerId={container.id}
-              depth={depth + 1}
-              isCreating={isCreatingNote}
-              onCreated={() => setIsCreatingNote(false)}
-              onCancel={() => setIsCreatingNote(false)}
             />
           )}
           {isCreatingTextBlock && (
@@ -348,7 +319,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
                   containerId={container.id}
                   depth={depth + 1}
                   beforePriority={directItems[0].priority}
-                  hideWhenCreating={isCreatingTask || isCreatingNote || isCreatingTextBlock}
+                  hideWhenCreating={isCreatingTask || isCreatingTextBlock}
                 />
                 {directItems.map((item, index) => {
                   const isDragOver = !!(activeDragId && activeDragId !== item.id && overId === item.id);
@@ -386,7 +357,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
                         depth={depth + 1}
                         afterPriority={item.priority}
                         beforePriority={index < directItems.length - 1 ? directItems[index + 1].priority : undefined}
-                        hideWhenCreating={isCreatingTask || isCreatingNote || isCreatingTextBlock}
+                        hideWhenCreating={isCreatingTask || isCreatingTextBlock}
                       />
                       {/* Show insertion indicator after last item if dragging over container */}
                       {index === directItems.length - 1 && isOver && activeDragId && activeTask && activeTask.containerId !== container.id && (
@@ -411,14 +382,14 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
             </SortableContext>
           ) : (
             <>
-              {!isCreatingTask && !isCreatingNote && (
+              {!isCreatingTask && (
                 <TaskDivider
                   containerId={container.id}
                   depth={depth + 1}
-                  hideWhenCreating={isCreatingTask || isCreatingNote || isCreatingTextBlock}
+                  hideWhenCreating={isCreatingTask || isCreatingTextBlock}
                 />
               )}
-              {isOver && activeDragId && !isCreatingTask && !isCreatingNote && directItems.length === 0 && activeTask && activeTask.containerId !== container.id && (
+              {isOver && activeDragId && !isCreatingTask && directItems.length === 0 && activeTask && activeTask.containerId !== container.id && (
                 <div
                   className="py-6 px-4 border-2 border-dashed rounded-lg shadow-lg animate-pulse"
                   style={{ 

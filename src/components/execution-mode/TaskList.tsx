@@ -128,7 +128,7 @@ export const TaskList: React.FC = () => {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Execution Mode</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Execute</h2>
         <p className="text-sm sm:text-base text-gray-600 mb-4">
           View and prioritize all your tasks. Drag and drop to reorder by priority.
         </p>
@@ -167,7 +167,7 @@ export const TaskList: React.FC = () => {
         <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg px-4">
           <p className="text-gray-500 mb-2">
             {tasks.length === 0
-              ? 'No tasks yet. Switch to Create Mode to add tasks!'
+              ? 'No tasks yet. Switch to Create to add tasks!'
               : 'No tasks to display. All tasks are completed or filtered out.'}
           </p>
         </div>
@@ -182,7 +182,7 @@ export const TaskList: React.FC = () => {
             items={sortedTasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-3">
+            <div className="space-y-1">
               {sortedTasks.map((task) => (
                 <TaskItem
                   key={task.id}

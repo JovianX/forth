@@ -77,7 +77,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-2 px-4 rounded-md group ${
+      className={`flex items-center gap-2 py-1.5 px-4 rounded-md group ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
       onMouseEnter={(e) => {
@@ -153,7 +153,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all"
+        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all ml-auto"
         aria-label="Delete task"
       >
         <Trash2 size={16} />

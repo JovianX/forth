@@ -56,6 +56,23 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     setIsEditing(false);
   };
 
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    // For older dates, show date
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   const handleCancel = () => {
     setContent(task.content || '');
     setIsEditing(false);
@@ -67,7 +84,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-2 py-2 px-4 rounded-md group border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40 transition-colors ${
+      className={`flex items-start gap-2 py-1.5 px-4 rounded-md group border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40 transition-colors ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
       onMouseEnter={(e) => {
@@ -109,24 +126,41 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       </div>
       <div className="flex-1 min-w-0">
         {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                handleCancel();
-              } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleSave();
-              }
-            }}
-            rows={Math.max(2, content.split('\n').length || 1)}
-            className="w-full px-1 py-1 bg-transparent border-none outline-none focus:outline-none text-gray-700 resize-none min-h-[2rem]"
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Write text..."
-          />
+          <div className="flex flex-col">
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  handleCancel();
+                } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleSave();
+                }
+              }}
+              rows={Math.max(2, content.split('\n').length || 1)}
+              className="w-full px-1 py-1 bg-transparent border-none outline-none focus:outline-none text-gray-700 resize-none min-h-[2rem]"
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Write text..."
+            />
+            <div className="flex items-center gap-1.5 mt-1 px-1 text-xs text-gray-400">
+              <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
+                {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
+              </kbd>
+              <span>+</span>
+              <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
+                Enter
+              </kbd>
+              <span>to save</span>
+              <span className="mx-1">•</span>
+              <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
+                Esc
+              </kbd>
+              <span>to cancel</span>
+            </div>
+          </div>
         ) : (
           <div
             className="px-1 py-1 text-gray-700 cursor-text whitespace-pre-wrap min-h-[1.5rem]"
@@ -136,16 +170,27 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           </div>
         )}
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          deleteTask(task.id);
-        }}
-        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0"
-        aria-label="Delete text block"
-      >
-        <Trash2 size={16} />
-      </button>
+      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span>Created: {formatTimestamp(task.createdAt)}</span>
+          {task.updatedAt && task.updatedAt !== task.createdAt && (
+            <span>•</span>
+          )}
+          {task.updatedAt && task.updatedAt !== task.createdAt && (
+            <span>Edited: {formatTimestamp(task.updatedAt)}</span>
+          )}
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteTask(task.id);
+          }}
+          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0"
+          aria-label="Delete text block"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </div>
   );
 };

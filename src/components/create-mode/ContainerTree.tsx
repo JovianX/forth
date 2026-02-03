@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Folder, FolderTree, Plus, Layout } from 'lucide-react';
+import { Folder, FolderTree } from 'lucide-react';
 import { ContainerNode } from './ContainerNode';
 import { CreateContainer } from './CreateContainer';
 import { ContainerDivider } from './ContainerDivider';
@@ -25,12 +25,28 @@ import { NoteNode } from './NoteNode';
 import { TextBlockNode } from './TextBlockNode';
 import { useTaskContext } from '../../context/TaskContext';
 
-export const ContainerTree: React.FC = () => {
+interface ContainerTreeProps {
+  onAddContainerRef?: (fn: () => void) => void;
+}
+
+export const ContainerTree: React.FC<ContainerTreeProps> = ({ onAddContainerRef }) => {
   const { containers, tasks, reorderTasksInContainer, moveTaskToContainer, reorderContainers } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [isCreatingRootContainer, setIsCreatingRootContainer] = useState(false);
   const [creatingDividerIndex, setCreatingDividerIndex] = useState<number | null>(null);
+  
+  // Register the add container function with parent
+  React.useEffect(() => {
+    if (onAddContainerRef) {
+      onAddContainerRef(() => {
+        if (!isCreatingRootContainer && creatingDividerIndex === null) {
+          setIsCreatingRootContainer(true);
+        }
+      });
+    }
+  }, [onAddContainerRef, isCreatingRootContainer, creatingDividerIndex]);
+  
   const rootContainers = containers
     .filter((c) => c.parentId === null)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -107,37 +123,6 @@ export const ContainerTree: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6">
-      {/* Header Section */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-500/20">
-                <Layout size={18} className="text-white" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Create Mode
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                Organize tasks in containers. Drag to reorganize.
-              </p>
-            </div>
-          </div>
-          {!isCreatingRootContainer && creatingDividerIndex === null && (
-            <button
-              onClick={() => setIsCreatingRootContainer(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all flex-shrink-0"
-              aria-label="Add root container"
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Add Container</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {rootContainers.length === 0 && containers.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50">
           <div className="mb-6">
@@ -146,7 +131,7 @@ export const ContainerTree: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No containers yet</h3>
             <p className="text-sm text-gray-500 px-4 max-w-md mx-auto">
-              Click "Add Container" in the header to create your first container.
+              Click "Add Container" in the main menu to create your first container.
             </p>
           </div>
           {isCreatingRootContainer && (
@@ -173,7 +158,7 @@ export const ContainerTree: React.FC = () => {
             items={rootContainers.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-0 overflow-x-auto">
+            <div className="space-y-0">
               {/* Containers List with Dividers */}
               {rootContainers.map((container, index) => (
                 <React.Fragment key={container.id}>

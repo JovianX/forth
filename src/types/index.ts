@@ -14,6 +14,7 @@ export interface Task {
   priority: number; // Used in execution mode
   containerId: string;
   createdAt: number;
+  updatedAt?: number; // Timestamp of last update
   type: 'task' | 'note' | 'text-block'; // Type of item
   content?: string; // For notes and text-blocks - deprecated for notes, use blocks instead
   blocks?: NoteBlock[]; // For notes - array of text and task blocks

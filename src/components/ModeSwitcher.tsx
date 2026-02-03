@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FolderTree, ListChecks, User, Palette } from 'lucide-react';
+import { FolderTree, ListChecks, User, Palette, Plus } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
 import { Mode } from '../types';
 import { getPalette } from '../utils/paletteUtils';
 
 interface ModeSwitcherProps {
   onColorPaletteClick?: () => void;
+  onAddContainerClick?: () => void;
 }
 
 // Icon components
@@ -1174,7 +1175,7 @@ const getIconSVG = (iconName: string | null) => {
   }
 };
 
-export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick }) => {
+export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick, onAddContainerClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1249,12 +1250,12 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick 
   const modes: { value: Mode; label: string; icon: React.ReactNode }[] = [
     {
       value: 'create',
-      label: 'Create Mode',
+      label: 'Create',
       icon: <FolderTree size={20} />,
     },
     {
       value: 'execution',
-      label: 'Execution Mode',
+      label: 'Execute',
       icon: <ListChecks size={20} />,
     },
   ];
@@ -1335,6 +1336,32 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick 
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Add Container Button - only show in Create mode */}
+            {onAddContainerClick && (
+              <button
+                onClick={onAddContainerClick}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-md font-medium text-sm transition-all duration-200"
+                style={{
+                  backgroundColor: `${primaryLight}80`,
+                  border: `1px solid ${borderColor}`,
+                  color: primaryDark,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = `${primaryLight}CC`;
+                  e.currentTarget.style.borderColor = primaryColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = `${primaryLight}80`;
+                  e.currentTarget.style.borderColor = borderColor;
+                }}
+                aria-label="Add root container"
+              >
+                <Plus size={18} />
+                <span className="hidden sm:inline">Add Container</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            )}
+            
             <div 
               className="flex gap-2 p-1 rounded-lg w-full sm:w-auto"
               style={{

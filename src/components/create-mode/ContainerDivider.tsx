@@ -21,14 +21,14 @@ export const ContainerDivider: React.FC<ContainerDividerProps> = ({
 
   return (
     <div
-      className="relative h-2 group py-1"
+      className="relative h-1 group"
       style={{ marginLeft: `${depth * 24}px` }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
     >
       {isHovered && (
-        <div className="absolute inset-0 flex items-center justify-center cursor-pointer">
+        <div className="absolute inset-0 flex items-center justify-center cursor-pointer -my-1">
           <div className="h-px bg-blue-400 w-full" />
           <div className="absolute bg-blue-500 rounded-full p-1.5 shadow-md hover:bg-blue-600 transition-colors">
             <FolderPlus size={14} className="text-white" />
