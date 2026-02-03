@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, FileText, Zap, AlignLeft } from 'lucide-react';
+import { GripVertical, FileText, Zap } from 'lucide-react';
 import { Task, Container } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { getContainerPath } from '../../utils/taskUtils';
@@ -84,7 +84,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         {isNote ? (
           <FileText size={20} className="flex-shrink-0" style={{ color: containerColor }} />
         ) : isTextBlock ? (
-          <AlignLeft size={20} className="flex-shrink-0" style={{ color: containerColor }} />
+          <div className="w-5 h-5 flex-shrink-0" />
         ) : (
           <TaskCheckbox checked={task.completed} onChange={onToggle} />
         )}

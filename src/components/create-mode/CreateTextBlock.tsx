@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { AlignLeft } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 
@@ -70,9 +69,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
       <div className="p-1 flex-shrink-0 opacity-0 pointer-events-none">
         <div className="w-4 h-4" />
       </div>
-      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <AlignLeft size={18} className="text-gray-500" />
-      </div>
+      <div className="w-5 h-5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex flex-col">
           <WysiwygEditor

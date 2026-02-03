@@ -22,19 +22,165 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   autoFocus = false,
 }) => {
   const quillRef = useRef<ReactQuill>(null);
+  const lastSelectionRef = useRef<{ index: number; length: number } | null>(null);
+  const isUserTypingRef = useRef(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userClickedRef = useRef(false);
+  const isPastingRef = useRef(false);
   // Generate a safe CSS class name (only alphanumeric and hyphens)
   const editorIdRef = useRef(`wysiwyg-${Math.random().toString(36).substring(2, 11).replace(/[^a-z0-9-]/g, '')}`);
+
+  // Function to restore cursor position
+  const restoreCursorPosition = (quill: any, force = false) => {
+    if (!lastSelectionRef.current || (isUserTypingRef.current && !force) || isPastingRef.current) return;
+    
+    const { index, length } = lastSelectionRef.current;
+    const textLength = quill.getLength();
+    
+    // Ensure index is within bounds
+    const safeIndex = Math.min(index, Math.max(0, textLength - 1));
+    const safeLength = Math.min(length, textLength - safeIndex);
+    
+    // Use multiple requestAnimationFrame calls to ensure it sticks
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          quill.setSelection(safeIndex, safeLength, 'user');
+          // Verify it was set correctly, if not try again
+          setTimeout(() => {
+            const currentSelection = quill.getSelection();
+            if (currentSelection && currentSelection.index === 0 && currentSelection.length === 0 && safeIndex > 0) {
+              // Cursor was reset to beginning, restore again
+              try {
+                quill.setSelection(safeIndex, safeLength, 'user');
+              } catch (e) {
+                // Ignore
+              }
+            }
+          }, 50);
+        } catch (e) {
+          // If setSelection fails, try without the 'user' source
+          try {
+            quill.setSelection(safeIndex, safeLength);
+          } catch (e2) {
+            // Ignore errors if selection can't be set
+          }
+        }
+      });
+    });
+  };
 
   useEffect(() => {
     if (autoFocus && quillRef.current) {
       const quill = quillRef.current.getEditor();
-      quill.focus();
+      // Wait for Quill to be ready, then focus and restore cursor
+      setTimeout(() => {
+        quill.focus();
+        // Check if cursor is at beginning before restoring (only if user didn't click)
+        setTimeout(() => {
+          if (!userClickedRef.current) {
+            const currentSelection = quill.getSelection();
+            if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
+              restoreCursorPosition(quill);
+            }
+          }
+        }, 50);
+      }, 100);
     }
   }, [autoFocus]);
+
+  // Restore cursor position when editor gains focus (but respect user clicks)
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    let hasRestoredOnFocus = false;
+
+    const handleMouseDown = () => {
+      // User is clicking, so we should respect their click position
+      userClickedRef.current = true;
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        userClickedRef.current = false;
+      }, 100);
+    };
+
+    const handleFocus = () => {
+      // Only restore if user didn't just click and cursor is at beginning
+      if (!hasRestoredOnFocus && lastSelectionRef.current && !userClickedRef.current) {
+        setTimeout(() => {
+          const currentSelection = quill.getSelection();
+          // If cursor is at the beginning (index 0), restore saved position
+          // This handles the case where ReactQuill reset it, but not if user clicked
+          if (currentSelection && currentSelection.index === 0 && currentSelection.length === 0) {
+            restoreCursorPosition(quill);
+          }
+          hasRestoredOnFocus = true;
+        }, 50);
+      } else if (userClickedRef.current) {
+        // User clicked, so respect their click position - don't restore
+        hasRestoredOnFocus = true;
+      }
+    };
+
+    const handleBlurInternal = () => {
+      // Reset flag when editor loses focus
+      hasRestoredOnFocus = false;
+      userClickedRef.current = false;
+    };
+
+    const editorElement = quill.root;
+    editorElement.addEventListener('focus', handleFocus);
+    editorElement.addEventListener('blur', handleBlurInternal);
+    editorElement.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      editorElement.removeEventListener('focus', handleFocus);
+      editorElement.removeEventListener('blur', handleBlurInternal);
+      editorElement.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, []);
+
+  // Restore cursor position when value changes externally (not from user typing or clicking)
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    // Don't restore if user is actively typing, just clicked, or pasting
+    if (isUserTypingRef.current || userClickedRef.current || isPastingRef.current) return;
+
+    // Only restore if we have a saved selection and editor is focused
+    if (lastSelectionRef.current && (document.activeElement === quill.root || quill.hasFocus())) {
+      // Use a longer delay to ensure Quill has processed the value change
+      setTimeout(() => {
+        const currentSelection = quill.getSelection();
+        // Only restore if cursor is at beginning (ReactQuill reset it)
+        if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
+          restoreCursorPosition(quill);
+        }
+      }, 50);
+    }
+  }, [value]);
 
   useEffect(() => {
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
+
+    // Restore cursor when editor is ready (for initial mount with autoFocus)
+    const checkAndRestore = () => {
+      if (lastSelectionRef.current && (autoFocus || document.activeElement === quill.root)) {
+        setTimeout(() => {
+          const currentSelection = quill.getSelection();
+          // If cursor is at beginning, restore saved position
+          if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
+            restoreCursorPosition(quill);
+          }
+        }, 100);
+      }
+    };
+
+    // Check after a delay to ensure Quill is ready
+    let readyTimeout: NodeJS.Timeout | null = setTimeout(checkAndRestore, 100);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
@@ -42,6 +188,37 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         e.preventDefault();
         onSave?.();
       }
+      // Handle paste shortcuts - set flag before paste happens
+      // Don't prevent default - let Quill handle paste natively
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        isPastingRef.current = true;
+        // Reset flag after paste completes (text-change and paste event will also handle this)
+        setTimeout(() => {
+          isPastingRef.current = false;
+        }, 500);
+      }
+    };
+
+    const handleContextMenu = () => {
+      // Allow the default context menu (which includes paste) to work
+      // Don't prevent default - let the browser show the context menu
+      // This enables right-click paste functionality
+      // Set paste flag when context menu is shown (user might paste from menu)
+      // Note: The actual paste event will also set this flag, but we set it here
+      // as a precaution in case the paste event doesn't fire
+      isPastingRef.current = true;
+      setTimeout(() => {
+        isPastingRef.current = false;
+      }, 1000);
+    };
+
+    const handlePaste = (e: ClipboardEvent) => {
+      // Ensure paste works - don't prevent default, let Quill handle it
+      isPastingRef.current = true;
+      // Use a longer timeout to ensure paste completes before allowing blur
+      setTimeout(() => {
+        isPastingRef.current = false;
+      }, 500);
     };
 
     const updateToolbarPosition = () => {
@@ -80,11 +257,11 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           const offset = 8; // Space between selection and toolbar
           
           // Calculate top position: editor offset + selection top - toolbar height - offset
+          // Allow negative values so toolbar can appear above container when selection is in first line
           const topPosition = editorOffsetTop + bounds.top - toolbarHeight - offset;
           
-          // Ensure toolbar doesn't go above the container
-          const minTop = 0;
-          const finalTop = Math.max(minTop, topPosition);
+          // Don't clamp to 0 - allow toolbar to go above container to stay above first line selection
+          const finalTop = topPosition;
           
           // Remove any fixed width to let toolbar size to its content
           toolbar.style.width = 'auto';
@@ -122,16 +299,52 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
 
     const handleSelectionChange = () => {
+      // Save cursor position
+      const selection = quill.getSelection();
+      if (selection) {
+        lastSelectionRef.current = {
+          index: selection.index,
+          length: selection.length,
+        };
+      }
       updateToolbarPosition();
     };
 
-    const handleTextChange = () => {
+    const handleTextChange = (delta: any, _oldDelta: any, source: string) => {
+      // Detect if this is a paste operation
+      if (source === 'user' && delta.ops) {
+        // Check if this looks like a paste (large insertion)
+        const hasLargeInsertion = delta.ops.some((op: any) => 
+          op.insert && typeof op.insert === 'string' && op.insert.length > 1
+        );
+        if (hasLargeInsertion && isPastingRef.current) {
+          // This is likely a paste, keep the flag set
+          setTimeout(() => {
+            isPastingRef.current = false;
+          }, 300);
+        }
+      }
+      
+      // Mark that user is typing
+      isUserTypingRef.current = true;
+      // Clear any existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       // Small delay to ensure DOM is updated
-      setTimeout(updateToolbarPosition, 0);
+      setTimeout(() => {
+        updateToolbarPosition();
+        // Reset typing flag after user stops typing
+        typingTimeoutRef.current = setTimeout(() => {
+          isUserTypingRef.current = false;
+        }, 150);
+      }, 0);
     };
 
     const editorElement = quill.root;
     editorElement.addEventListener('keydown', handleKeyDown);
+    editorElement.addEventListener('paste', handlePaste);
+    editorElement.addEventListener('contextmenu', handleContextMenu);
     quill.on('selection-change', handleSelectionChange);
     quill.on('text-change', handleTextChange);
     
@@ -146,30 +359,64 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
     return () => {
       editorElement.removeEventListener('keydown', handleKeyDown);
+      editorElement.removeEventListener('paste', handlePaste);
+      editorElement.removeEventListener('contextmenu', handleContextMenu);
       editorElement.removeEventListener('scroll', handleScroll);
       quill.off('selection-change', handleSelectionChange);
       quill.off('text-change', handleTextChange);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (readyTimeout) {
+        clearTimeout(readyTimeout);
+      }
     };
-  }, [onSave]);
+  }, [onSave, autoFocus]);
+
+  // Handle blur to save cursor position
+  const handleBlur = () => {
+    // Don't trigger onBlur callback if user is pasting - this prevents
+    // edit mode from exiting when pasting content
+    if (isPastingRef.current) {
+      return;
+    }
+    
+    const quill = quillRef.current?.getEditor();
+    if (quill) {
+      const selection = quill.getSelection();
+      if (selection) {
+        lastSelectionRef.current = {
+          index: selection.index,
+          length: selection.length,
+        };
+      }
+    }
+    onBlur?.();
+  };
 
   const modules = {
     toolbar: [
       ['bold', 'italic', 'underline', 'strike'],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link'],
       ['clean']
     ],
+    clipboard: {
+      // Enable clipboard module (default behavior)
+      matchVisual: false,
+    },
   };
 
   const formats = [
     'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet',
-    'link'
+    'list', 'bullet'
   ];
 
   return (
     <>
-      <div className={`${className} ${editorIdRef.current}`} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className={`${className} ${editorIdRef.current}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <ReactQuill
           ref={quillRef}
           theme="snow"
@@ -178,7 +425,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           modules={modules}
           formats={formats}
           placeholder={placeholder}
-          onBlur={onBlur}
+          onBlur={handleBlur}
           className="wysiwyg-editor"
           style={{
             backgroundColor: 'transparent',
@@ -188,6 +435,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       <style>{`
         .${editorIdRef.current} {
           position: relative;
+          overflow: visible;
         }
         .${editorIdRef.current} .ql-container {
           border: none;
@@ -205,9 +453,6 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor * {
           color: inherit;
           font-size: inherit;
-        }
-        .${editorIdRef.current} .ql-editor a {
-          color: #3b82f6 !important;
         }
         /* Ensure all text elements match display mode exactly */
         .${editorIdRef.current} .ql-editor p,
@@ -291,9 +536,6 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           text-align: right !important;
           white-space: nowrap !important;
           width: 1.2em !important;
-        }
-        .${editorIdRef.current} .ql-editor a {
-          text-decoration: underline;
         }
         .${editorIdRef.current} .ql-editor strong {
           font-weight: 600;
