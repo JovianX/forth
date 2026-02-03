@@ -272,16 +272,18 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           color: #374151 !important;
           font-size: 1.4em !important;
           font-weight: bold !important;
-          line-height: 0.8 !important;
-          vertical-align: middle !important;
+          line-height: 1 !important;
+          vertical-align: baseline !important;
+          transform: translateY(0.1em) !important;
         }
         /* Override Quill's default bullet styling to match display mode */
         .${editorIdRef.current} .ql-editor li[data-list=bullet] > .ql-ui::before {
           content: "\\2022" !important;
           font-size: 1.4em !important;
           font-weight: bold !important;
-          line-height: 0.8 !important;
-          vertical-align: middle !important;
+          line-height: 1 !important;
+          vertical-align: baseline !important;
+          transform: translateY(0.1em) !important;
           color: #374151 !important;
           display: inline-block !important;
           margin-left: -1.5em !important;
