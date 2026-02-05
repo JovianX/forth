@@ -16,49 +16,27 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { TaskItem } from './TaskItem';
-import { ContainerFilter } from './ContainerFilter';
 import { useTaskContext } from '../../context/TaskContext';
 
-export const TaskList: React.FC = () => {
-  const { tasks, containers, toggleTaskCompletion, reorderTasks, reorderContainers } = useTaskContext();
-  const [showCompleted, setShowCompleted] = useState(true);
-  const [selectedContainers, setSelectedContainers] = useState<Set<string> | null>(null); // null = all selected
+interface TaskListProps {
+  selectedContainers: Set<string> | null;
+  showCompleted: boolean;
+  onSelectedContainersChange: (containers: Set<string> | null) => void;
+  onShowCompletedChange: (show: boolean) => void;
+}
+
+export const TaskList: React.FC<TaskListProps> = ({
+  selectedContainers,
+  showCompleted,
+  onShowCompletedChange,
+}) => {
+  const { tasks, containers, toggleTaskCompletion, reorderTasks } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
   
   // Use first container color or default neutral color for checkbox accent
   const rootContainers = containers.filter((c) => c.parentId === null);
   const defaultAccentColor = rootContainers.length > 0 ? rootContainers[0].color : '#6B7280';
 
-  const handleToggleContainer = (containerId: string, event?: React.MouseEvent) => {
-    const isMultiSelect = event?.ctrlKey || event?.metaKey;
-    
-    setSelectedContainers((prev) => {
-      if (isMultiSelect) {
-        // Multi-select mode: toggle this container
-        if (prev === null) {
-          return new Set([containerId]);
-        }
-        const newSet = new Set(prev);
-        if (newSet.has(containerId)) {
-          newSet.delete(containerId);
-          return newSet.size === 0 ? null : newSet;
-        } else {
-          newSet.add(containerId);
-          return newSet;
-        }
-      } else {
-        // Single-select mode: select only this container
-        if (prev !== null && prev.size === 1 && prev.has(containerId)) {
-          return null; // Deselect if clicking the same one
-        }
-        return new Set([containerId]);
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    setSelectedContainers(null);
-  };
 
   const sortedTasks = useMemo(() => {
     // Filter out notes and text-blocks - execution mode is only for actionable tasks
@@ -97,8 +75,15 @@ export const TaskList: React.FC = () => {
     return sortedTasks.find((t) => t.id === activeId);
   }, [sortedTasks, activeId]);
 
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const totalCount = tasks.length;
+  // Calculate actionable tasks (exclude notes and text-blocks)
+  const actionableTasks = useMemo(() => {
+    return tasks.filter((t) => t.type !== 'note' && t.type !== 'text-block');
+  }, [tasks]);
+
+  const totalActionableCount = actionableTasks.length;
+  const completedActionableCount = actionableTasks.filter((t) => t.completed).length;
+  const displayedCount = sortedTasks.length;
+  const displayedCompletedCount = sortedTasks.filter((t) => t.completed).length;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -125,51 +110,56 @@ export const TaskList: React.FC = () => {
     }
   };
 
+  const isFiltered = selectedContainers !== null || !showCompleted;
+
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Execute</h2>
-        <p className="text-sm sm:text-base text-gray-600 mb-4">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Execute</h2>
+        <p className="text-sm sm:text-base text-gray-600 mb-6">
           View and prioritize all your tasks. Drag and drop to reorder by priority.
         </p>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">{totalCount}</span> total tasks
-            {completedCount > 0 && (
-              <span className="ml-2">
-                • <span className="font-medium">{completedCount}</span> completed
-              </span>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm mb-6">
+          <div className="text-sm text-gray-700">
+            {isFiltered ? (
+              <>
+                <span className="font-semibold text-gray-900">{displayedCount}</span> of{' '}
+                <span className="font-medium">{totalActionableCount}</span> tasks shown
+                {displayedCompletedCount > 0 && (
+                  <span className="ml-2 text-gray-600">
+                    • <span className="font-medium">{displayedCompletedCount}</span> completed
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-gray-900">{totalActionableCount}</span> total tasks
+                {completedActionableCount > 0 && (
+                  <span className="ml-2 text-gray-600">
+                    • <span className="font-medium">{completedActionableCount}</span> completed
+                  </span>
+                )}
+              </>
             )}
           </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showCompleted}
-              onChange={(e) => setShowCompleted(e.target.checked)}
-              className="rounded border-gray-300"
-              style={{
-                accentColor: defaultAccentColor,
-              }}
-            />
-            Show completed tasks
-          </label>
         </div>
-        <ContainerFilter
-          containers={containers}
-          selectedContainers={selectedContainers}
-          onToggleContainer={handleToggleContainer}
-          onSelectAll={handleSelectAll}
-          onReorderContainers={reorderContainers}
-        />
       </div>
 
       {sortedTasks.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg px-4">
-          <p className="text-gray-500 mb-2">
-            {tasks.length === 0
-              ? 'No tasks yet. Switch to Create to add tasks!'
-              : 'No tasks to display. All tasks are completed or filtered out.'}
+        <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-lg px-4 bg-white/40 backdrop-blur-sm">
+          <p className="text-gray-600 mb-2 text-base">
+            {totalActionableCount === 0
+              ? 'No tasks yet. Switch to Create mode to add tasks!'
+              : isFiltered
+              ? 'No tasks match your current filters. Try adjusting your container selection or show completed tasks.'
+              : 'All tasks are completed. Uncheck "Show completed tasks" to hide them.'}
           </p>
+          {totalActionableCount === 0 && (
+            <p className="text-sm text-gray-500 mt-2">
+              Tasks you create will appear here for prioritization and execution.
+            </p>
+          )}
         </div>
       ) : (
         <DndContext
@@ -182,7 +172,7 @@ export const TaskList: React.FC = () => {
             items={sortedTasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-1">
+            <div className="space-y-3">
               {sortedTasks.map((task) => (
                 <TaskItem
                   key={task.id}

@@ -1,12 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FolderTree, ListChecks, User, Palette, Plus } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
-import { Mode } from '../types';
+import { Mode, Container } from '../types';
 import { getPalette } from '../utils/paletteUtils';
+import { FilterMenu } from './execution-mode/FilterMenu';
+
+interface FilterMenuProps {
+  containers: Container[];
+  selectedContainers: Set<string> | null;
+  onToggleContainer: (containerId: string, event?: React.MouseEvent) => void;
+  onSelectAll: () => void;
+  onReorderContainers: (activeId: string, overId: string | null) => void;
+}
 
 interface ModeSwitcherProps {
   onColorPaletteClick?: () => void;
   onAddContainerClick?: () => void;
+  filterMenuProps?: FilterMenuProps;
 }
 
 // Icon components
@@ -1175,7 +1185,8 @@ const getIconSVG = (iconName: string | null) => {
   }
 };
 
-export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick, onAddContainerClick }) => {
+export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
+  filterMenuProps, onColorPaletteClick, onAddContainerClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1336,6 +1347,11 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ onColorPaletteClick,
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Filter Menu - only show in Execute mode */}
+            {filterMenuProps && (
+              <FilterMenu {...filterMenuProps} />
+            )}
+            
             {/* Add Container Button - only show in Create mode */}
             {onAddContainerClick && (
               <button

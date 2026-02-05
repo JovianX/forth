@@ -6,8 +6,58 @@ import { ColorPalettePreview } from './components/ColorPalettePreview';
 import { useTaskContext } from './context/TaskContext';
 import { getPalette } from './utils/paletteUtils';
 
+const FILTER_STORAGE_KEY = 'forth-filter-state';
+
+interface FilterState {
+  selectedContainers: string[] | null;
+  showCompleted: boolean;
+}
+
 function App() {
-  const { mode } = useTaskContext();
+  const { mode, containers, reorderContainers } = useTaskContext();
+  
+  // Load filter state from localStorage
+  const loadFilterState = (): FilterState => {
+    try {
+      const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as FilterState;
+        return {
+          selectedContainers: parsed.selectedContainers,
+          showCompleted: parsed.showCompleted ?? true,
+        };
+      }
+    } catch (e) {
+      console.error('Error loading filter state:', e);
+    }
+    return {
+      selectedContainers: null,
+      showCompleted: true,
+    };
+  };
+
+  // Filter state for execute mode
+  const [selectedContainers, setSelectedContainers] = useState<Set<string> | null>(() => {
+    const saved = loadFilterState();
+    return saved.selectedContainers ? new Set(saved.selectedContainers) : null;
+  });
+  const [showCompleted, setShowCompleted] = useState(() => {
+    const saved = loadFilterState();
+    return saved.showCompleted ?? true;
+  });
+
+  // Save filter state to localStorage
+  useEffect(() => {
+    try {
+      const stateToSave: FilterState = {
+        selectedContainers: selectedContainers ? Array.from(selectedContainers) : null,
+        showCompleted,
+      };
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error('Error saving filter state:', e);
+    }
+  }, [selectedContainers, showCompleted]);
   const [showColorPreview, setShowColorPreview] = useState(false);
   const [backgroundGradient, setBackgroundGradient] = useState('from-amber-50 via-orange-50 to-red-50');
   const addContainerRef = useRef<(() => void) | null>(null);
@@ -49,15 +99,67 @@ function App() {
     addContainerRef.current?.();
   };
 
+  const handleToggleContainer = (containerId: string, event?: React.MouseEvent) => {
+    const isMultiSelect = event?.ctrlKey || event?.metaKey;
+    
+    setSelectedContainers((prev) => {
+      if (isMultiSelect) {
+        // Multi-select mode: toggle this container
+        if (prev === null) {
+          return new Set([containerId]);
+        }
+        const newSet = new Set(prev);
+        if (newSet.has(containerId)) {
+          newSet.delete(containerId);
+          return newSet.size === 0 ? null : newSet;
+        } else {
+          newSet.add(containerId);
+          return newSet;
+        }
+      } else {
+        // Single-select mode: select only this container
+        if (prev !== null && prev.size === 1 && prev.has(containerId)) {
+          return null; // Deselect if clicking the same one
+        }
+        return new Set([containerId]);
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedContainers(null);
+  };
+
   return (
     <div className={`h-screen flex flex-col bg-gradient-to-br ${backgroundGradient} overflow-hidden`}>
       <ModeSwitcher 
         onColorPaletteClick={() => setShowColorPreview(true)}
         onAddContainerClick={mode === 'create' ? handleAddContainerClick : undefined}
+        filterMenuProps={
+          mode === 'execution'
+            ? {
+                containers,
+                selectedContainers,
+                showCompleted,
+                onToggleContainer: handleToggleContainer,
+                onSelectAll: handleSelectAll,
+                onShowCompletedChange: setShowCompleted,
+              }
+            : undefined
+        }
       />
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
         <div className="transition-opacity duration-300">
-          {mode === 'create' ? <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} /> : <TaskList />}
+          {mode === 'create' ? (
+            <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} />
+          ) : (
+            <TaskList
+              selectedContainers={selectedContainers}
+              showCompleted={showCompleted}
+              onSelectedContainersChange={setSelectedContainers}
+              onShowCompletedChange={setShowCompleted}
+            />
+          )}
         </div>
       </main>
     </div>

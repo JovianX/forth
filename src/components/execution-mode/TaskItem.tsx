@@ -45,8 +45,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition, // No transition during drag for instant feedback
-    opacity: isDragging ? 0.3 : 1,
-    backgroundColor: task.completed ? containerLightColor : 'white',
+    opacity: isDragging ? 0.5 : 1,
     borderColor: containerBorderColor,
   };
 
@@ -55,20 +54,23 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       ref={setNodeRef}
       style={style}
       className={`
-        flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 border rounded-lg group
+        flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-4 border-2 rounded-xl group transition-all
         ${task.completed
-          ? 'shadow-sm'
-          : 'bg-white shadow-sm'
+          ? 'shadow-sm bg-white/60'
+          : 'bg-white shadow-md hover:shadow-lg'
         }
+        ${isDragging ? 'opacity-50' : ''}
       `}
       onMouseEnter={(e) => {
-        if (!task.completed) {
+        if (!task.completed && !isDragging) {
           e.currentTarget.style.borderColor = containerColor;
+          e.currentTarget.style.transform = 'translateY(-1px)';
         }
       }}
       onMouseLeave={(e) => {
         if (!task.completed) {
           e.currentTarget.style.borderColor = containerBorderColor;
+          e.currentTarget.style.transform = '';
         }
       }}
     >
@@ -89,13 +91,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <TaskCheckbox checked={task.completed} onChange={onToggle} />
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {!isTextBlock && (
               <div
                 className={`
-                  font-medium text-sm sm:text-base
+                  font-semibold text-base sm:text-lg
                   ${task.completed && !isNote && !isTextBlock
-                    ? 'line-through text-gray-500'
+                    ? 'line-through text-gray-400'
                     : 'text-gray-900'
                   }
                 `}
@@ -155,9 +157,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               {task.content}
             </div>
           )}
-          <div className="text-xs sm:text-sm text-gray-500 mt-1">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span
-              className="inline-flex items-center px-2 py-1 rounded-md text-white font-medium"
+              className="inline-flex items-center px-2.5 py-1 rounded-lg text-white text-xs font-semibold shadow-sm"
               style={{
                 backgroundColor: containerColor,
               }}
@@ -165,16 +167,16 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               {containerName}
             </span>
             {containerPath.length > 1 && (
-              <span className="ml-2 text-gray-400 hidden sm:inline">
+              <span className="text-xs text-gray-500 hidden sm:inline">
                 {containerPath.slice(0, -1).join(' / ')}
               </span>
             )}
+            {!isNote && !isTextBlock && (
+              <div className="text-xs text-gray-500 font-medium">
+                Priority: <span className="text-gray-700">{task.priority}</span>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-        <div className="text-xs sm:text-sm text-gray-500 font-medium">
-          Priority: {task.priority}
         </div>
       </div>
     </div>
