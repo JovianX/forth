@@ -3,10 +3,6 @@ import { Filter, X, Search, CheckSquare, Square } from 'lucide-react';
 import { ContainerFilter } from './ContainerFilter';
 import { Container } from '../../types';
 import { getPalette } from '../../utils/paletteUtils';
-import {
-  getContainerLightColor,
-  getContainerColorWithOpacity,
-} from '../../utils/colorUtils';
 
 interface FilterMenuProps {
   containers: Container[];

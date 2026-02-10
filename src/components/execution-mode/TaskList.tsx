@@ -28,7 +28,7 @@ interface TaskListProps {
 export const TaskList: React.FC<TaskListProps> = ({
   selectedContainers,
   showCompleted,
-  onShowCompletedChange,
+  onShowCompletedChange: _onShowCompletedChange,
 }) => {
   const { tasks, containers, toggleTaskCompletion, reorderTasksAmong } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -39,11 +39,6 @@ export const TaskList: React.FC<TaskListProps> = ({
     const t = setTimeout(() => setJustDroppedId(null), 150);
     return () => clearTimeout(t);
   }, [justDroppedId]);
-
-  // Use first container color or default neutral color for checkbox accent
-  const rootContainers = containers.filter((c) => c.parentId === null);
-  const defaultAccentColor = rootContainers.length > 0 ? rootContainers[0].color : '#6B7280';
-
 
   const sortedTasks = useMemo(() => {
     // Show only tasks with a non-empty title (exclude notes, text-blocks, entries, and draft/placeholder tasks)

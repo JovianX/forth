@@ -212,7 +212,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       }, 1000);
     };
 
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = (_e: ClipboardEvent) => {
       // Ensure paste works - don't prevent default, let Quill handle it
       isPastingRef.current = true;
       // Use a longer timeout to ensure paste completes before allowing blur
@@ -408,7 +408,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
   const formats = [
     'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet'
+    'list'
   ];
 
   return (

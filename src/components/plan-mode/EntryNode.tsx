@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-/** Tooltip that shows on hover with delay and nice styling */
-const TimestampTooltip: React.FC<{
-  label: string;
-  exactTime: string;
-  children: React.ReactNode;
-}> = ({ label, exactTime, children }) => {
+/** Compact entry times: single icon, tooltip shows created/edited so it doesn't take layout space */
+const EntryTimesTooltip: React.FC<{
+  createdAt: number;
+  updatedAt?: number;
+  formatExact: (t: number) => string;
+}> = ({ createdAt, updatedAt, formatExact }) => {
   const [visible, setVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const show = () => {
     timeoutRef.current = setTimeout(() => setVisible(true), 400);
   };
@@ -20,33 +19,41 @@ const TimestampTooltip: React.FC<{
     }
     setVisible(false);
   };
-
   useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
-
+  const hasEdit = updatedAt != null && updatedAt !== createdAt;
   return (
     <span
-      className="relative inline-block"
+      className="relative inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
       onMouseEnter={show}
       onMouseLeave={hide}
     >
-      {children}
+      <span className="p-1.5 text-gray-400 rounded cursor-default" aria-label="Created and edited times">
+        <Clock size={14} />
+      </span>
       <span
-        className={`absolute left-1/2 bottom-full -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-800 rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50 transition-opacity duration-150 ${
+        className={`absolute left-0 bottom-full mb-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-800 rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50 transition-opacity duration-150 ${
           visible ? 'opacity-100' : 'opacity-0'
         }`}
         role="tooltip"
         aria-hidden={!visible}
       >
-        {label}: {exactTime}
-        <span className="absolute left-1/2 top-full -translate-x-1/2 -mt-0.5 border-4 border-transparent border-t-gray-800" aria-hidden />
+        Created: {formatExact(createdAt)}
+        {hasEdit && (
+          <>
+            <br />
+            Edited: {formatExact(updatedAt!)}
+          </>
+        )}
+        <span className="absolute left-4 top-full -mt-0.5 border-4 border-transparent border-t-gray-800" aria-hidden />
       </span>
     </span>
   );
 };
+
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ListTodo, Type } from 'lucide-react';
+import { GripVertical, Trash2, ListTodo, Type, Clock } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
@@ -149,20 +156,6 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   };
 
   const sortedItems = [...items].sort((a, b) => b.priority - a.priority);
-
-  const formatTimestamp = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const formatExactTimestamp = (timestamp: number): string =>
     new Date(timestamp).toLocaleString('en-US', {
@@ -288,19 +281,11 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               {displayTitle}
             </button>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-            <TimestampTooltip label="Created" exactTime={formatExactTimestamp(entry.createdAt)}>
-              <span>Created: {formatTimestamp(entry.createdAt)}</span>
-            </TimestampTooltip>
-            {entry.updatedAt && entry.updatedAt !== entry.createdAt && (
-              <>
-                <span>•</span>
-                <TimestampTooltip label="Edited" exactTime={formatExactTimestamp(entry.updatedAt)}>
-                  <span>Edited: {formatTimestamp(entry.updatedAt)}</span>
-                </TimestampTooltip>
-              </>
-            )}
-          </div>
+          <EntryTimesTooltip
+            createdAt={entry.createdAt}
+            updatedAt={entry.updatedAt}
+            formatExact={formatExactTimestamp}
+          />
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleAddTask}

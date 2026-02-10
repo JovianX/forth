@@ -1,7 +1,6 @@
 import React from 'react';
 import { Container } from '../../types';
 import {
-  getContainerLightColor,
   getContainerHoverColor,
   getContainerDarkColor,
   getContainerColorWithOpacity,
@@ -28,7 +27,6 @@ export const ContainerFilter: React.FC<ContainerFilterProps> = ({
   
   // Use first container color or default neutral color for "All" button
   const defaultContainerColor = rootContainers.length > 0 ? rootContainers[0].color : '#6B7280';
-  const defaultLightColor = getContainerLightColor(defaultContainerColor);
   const defaultDarkColor = getContainerDarkColor(defaultContainerColor);
   const defaultBorderColor = getContainerColorWithOpacity(defaultContainerColor, 0.3);
 
@@ -49,7 +47,6 @@ export const ContainerFilter: React.FC<ContainerFilterProps> = ({
             backgroundColor: selectedContainers === null ? defaultContainerColor : 'white',
             color: selectedContainers === null ? 'white' : defaultDarkColor,
             borderColor: selectedContainers === null ? defaultContainerColor : defaultBorderColor,
-            ringColor: selectedContainers === null ? defaultContainerColor : undefined,
           }}
           onMouseEnter={(e) => {
             if (selectedContainers !== null) {
@@ -120,7 +117,6 @@ const ContainerFilterItem: React.FC<ContainerFilterItemProps> = ({
   };
   
   // Derive colors from container color
-  const containerLightColor = getContainerLightColor(container.color);
   const containerHoverColor = getContainerHoverColor(container.color);
   const containerDarkColor = getContainerDarkColor(container.color);
   const containerBorderColor = getContainerColorWithOpacity(container.color, 0.3);
@@ -141,7 +137,6 @@ const ContainerFilterItem: React.FC<ContainerFilterItemProps> = ({
           backgroundColor: isSelected ? container.color : 'white',
           color: isSelected ? 'white' : containerDarkColor,
           borderColor: isSelected ? container.color : containerBorderColor,
-          ringColor: isSelected ? container.color : undefined,
           marginLeft: depth > 0 ? '0' : '0',
         }}
         onMouseEnter={(e) => {

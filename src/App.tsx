@@ -15,7 +15,7 @@ interface FilterState {
 }
 
 function App() {
-  const { mode, containers, reorderContainers } = useTaskContext();
+  const { mode, containers } = useTaskContext();
   
   // Load filter state from localStorage
   const loadFilterState = (): FilterState => {

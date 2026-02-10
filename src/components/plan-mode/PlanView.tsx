@@ -25,7 +25,6 @@ import { EntryNode } from './EntryNode';
 import { TaskNode } from '../create-mode/TaskNode';
 import { NoteNode } from '../create-mode/NoteNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
-import { CreateContainer } from '../create-mode/CreateContainer';
 import { getPalette } from '../../utils/paletteUtils';
 import {
   getContainerLightColor,
@@ -449,9 +448,7 @@ export const PlanView: React.FC = () => {
     };
 
     const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
-    const activeContainer = activeId ? containers.find((c) => c.id === activeId) : null;
     const isDraggingOver = isOver && activeId && activeTask && activeTask.containerId !== container.id;
-    const isDraggingContainer = activeContainer && activeContainer.id === container.id;
     const containerLightColor = getContainerLightColor(container.color);
     const containerDarkColor = getContainerDarkColor(container.color);
     
@@ -955,20 +952,20 @@ export const PlanView: React.FC = () => {
                 <Zap size={16} style={{ color: activeItem.color }} className="flex-shrink-0" />
                 <span className="text-gray-700 font-medium">{activeItem.name}</span>
               </div>
-            ) : activeItem.type === 'entry' ? (
+            ) : 'type' in activeItem && activeItem.type === 'entry' ? (
               <div className="bg-white rounded-lg border-2 border-gray-200 shadow-lg p-4">
                 <div className="flex items-center gap-2">
                   <Zap size={18} style={{ color: '#6B7280' }} />
                   <span className="text-gray-700 font-medium">Topic</span>
                 </div>
               </div>
-            ) : activeItem.type === 'note' ? (
+            ) : 'type' in activeItem && activeItem.type === 'note' ? (
               <NoteNode task={activeItem} depth={0} />
-            ) : activeItem.type === 'text-block' ? (
+            ) : 'type' in activeItem && activeItem.type === 'text-block' ? (
               <TextBlockNode task={activeItem} depth={0} />
-            ) : (
+            ) : 'type' in activeItem ? (
               <TaskNode task={activeItem} depth={0} />
-            )}
+            ) : null}
           </div>
         ) : null}
       </DragOverlay>

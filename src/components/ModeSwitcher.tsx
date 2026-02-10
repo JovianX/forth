@@ -8,9 +8,11 @@ import { FilterMenu } from './execution-mode/FilterMenu';
 interface FilterMenuProps {
   containers: Container[];
   selectedContainers: Set<string> | null;
+  showCompleted: boolean;
   onToggleContainer: (containerId: string, event?: React.MouseEvent) => void;
   onSelectAll: () => void;
-  onReorderContainers: (activeId: string, overId: string | null) => void;
+  onShowCompletedChange: (show: boolean) => void;
+  onReorderContainers?: (activeId: string, overId: string | null) => void;
 }
 
 interface ModeSwitcherProps {
