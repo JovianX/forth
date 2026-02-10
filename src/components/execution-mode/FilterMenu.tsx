@@ -221,7 +221,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search containers..."
+                placeholder="Search topics..."
                 className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors"
                 style={{
                   borderColor: searchQuery ? primaryColor : borderColor,
@@ -253,7 +253,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({
                   color: primaryDark,
                 }}
                 disabled={selectedContainers === null}
-                title="Select all containers"
+                title="Select all topics"
               >
                 Select All
               </button>
@@ -274,7 +274,7 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({
             {/* Selected Count */}
             {hasActiveFilters && (
               <div className="text-xs text-gray-500 mb-1">
-                <span className="font-medium text-gray-700">{selectedCount}</span> of <span className="font-medium text-gray-700">{totalRootContainers}</span> containers selected
+                <span className="font-medium text-gray-700">{selectedCount}</span> of <span className="font-medium text-gray-700">{totalRootContainers}</span> topics selected
               </div>
             )}
           </div>
@@ -318,13 +318,13 @@ export const FilterMenu: React.FC<FilterMenuProps> = ({
               />
             ) : searchQuery ? (
               <div className="text-center py-12">
-                <div className="text-sm text-gray-500 mb-1">No containers found</div>
+                <div className="text-sm text-gray-500 mb-1">No topics found</div>
                 <div className="text-xs text-gray-400">Try a different search term</div>
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="text-sm text-gray-500 mb-1">No containers available</div>
-                <div className="text-xs text-gray-400">Create containers in Create mode</div>
+                <div className="text-sm text-gray-500 mb-1">No topics available</div>
+                <div className="text-xs text-gray-400">Create topics in Create mode</div>
               </div>
             )}
           </div>

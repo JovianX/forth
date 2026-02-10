@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Folder, FolderTree } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { ContainerNode } from './ContainerNode';
 import { CreateContainer } from './CreateContainer';
 import { ContainerDivider } from './ContainerDivider';
@@ -127,11 +127,11 @@ export const ContainerTree: React.FC<ContainerTreeProps> = ({ onAddContainerRef 
         <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-              <FolderTree size={32} className="text-gray-400" />
+              <Zap size={32} className="text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No containers yet</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No topics yet</h3>
             <p className="text-sm text-gray-500 px-4 max-w-md mx-auto">
-              Click "Add Container" in the main menu to create your first container.
+              Click "Add Topic" in the main menu to create your first topic.
             </p>
           </div>
           {isCreatingRootContainer && (
@@ -210,7 +210,7 @@ export const ContainerTree: React.FC<ContainerTreeProps> = ({ onAddContainerRef 
                   backgroundColor: `${activeContainer.color}15`,
                 }}
               >
-                <Folder size={18} style={{ color: activeContainer.color }} />
+                <Zap size={18} style={{ color: activeContainer.color }} />
                 <span className="font-medium text-gray-900">{activeContainer.name}</span>
               </div>
             ) : activeTask ? (

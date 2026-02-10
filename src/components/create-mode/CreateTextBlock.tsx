@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTaskContext } from '../../context/TaskContext';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 
@@ -20,6 +20,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   priority,
 }) => {
   const [content, setContent] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
   const { addTask, containers } = useTaskContext();
 
   const container = containers.find((c) => c.id === containerId);
@@ -48,28 +49,39 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
     }
   }, [isCreating]);
 
+  // Scroll the form into view when opened so it's aligned with where the user triggered "Add text"
+  useEffect(() => {
+    if (isCreating && rootRef.current) {
+      rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isCreating]);
+
   if (!isCreating) {
     return null;
   }
 
   return (
     <div
-      className="flex items-start gap-2 py-1.5 px-4 rounded-md group border-l-2 border-gray-300 bg-gray-50/30"
+      ref={rootRef}
+      className="flex items-start gap-2 py-1.5 px-4 border-l-2 group bg-gray-50/20 hover:bg-gray-50/40 transition-colors"
       style={{
         marginLeft: `${depth * 24}px`,
+        borderLeftColor: containerColor,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = `${containerColor}15`;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.backgroundColor = 'rgba(249, 250, 251, 0.2)'; /* gray-50/20 */
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="p-1 flex-shrink-0 opacity-0 pointer-events-none">
+      {/* Same width as TextBlockNode drag handle (p-1 + 16px icon) so editor aligns with existing text blocks */}
+      <div className="p-1 flex-shrink-0 w-6 min-w-6 flex items-center justify-center opacity-0 pointer-events-none" aria-hidden>
         <div className="w-4 h-4" />
       </div>
-      <div className="w-5 h-5 flex-shrink-0" />
+      {/* Spacer to align text with task row (same as TextBlockNode) */}
+      <div className="w-5 h-5 flex-shrink-0" aria-hidden />
       <div className="flex-1 min-w-0">
         <div className="flex flex-col">
           <WysiwygEditor

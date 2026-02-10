@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, AlignLeft } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
@@ -10,10 +10,14 @@ interface TextBlockNodeProps {
   task: Task;
   depth: number;
   isDragOver?: boolean;
+  /** When true and dragging, hide the source so only DragOverlay is visible (fixes wrong position) */
+  hideSourceWhileDragging?: boolean;
+  /** Tighter spacing for list-like layouts (e.g. plan entries) */
+  compact?: boolean;
 }
 
-export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDragOver = false }) => {
-  const { deleteTask, updateTask, containers } = useTaskContext();
+export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false }) => {
+  const { deleteTask, updateTask } = useTaskContext();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(task.content || '');
 
@@ -26,21 +30,29 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     isDragging,
   } = useSortable({ id: task.id });
 
-  const container = containers.find((c) => c.id === task.containerId);
-  const containerColor = container?.color || '#3B82F6';
-
+  const isSourceHidden = hideSourceWhileDragging && isDragging;
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isSourceHidden ? undefined : CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isSourceHidden ? 0 : (isDragging ? 0.4 : 1),
     marginLeft: `${depth * 24}px`,
     backgroundColor: 'transparent',
+    pointerEvents: isSourceHidden ? 'none' as const : undefined,
   };
 
 
   useEffect(() => {
     setContent(task.content || '');
   }, [task.content]);
+
+  // Auto-enter editing mode if text block is empty and was just created (within last 2 seconds)
+  useEffect(() => {
+    const isNewlyCreated = Date.now() - task.createdAt < 2000;
+    const isEmpty = !task.content || task.content.trim() === '';
+    if (isNewlyCreated && isEmpty && !isEditing) {
+      setIsEditing(true);
+    }
+  }, [task.createdAt, task.content, isEditing]);
 
   const handleSave = () => {
     if (content !== (task.content || '')) {
@@ -80,19 +92,11 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-2 py-1.5 px-4 rounded-md group border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40 transition-colors ${
+      className={`flex items-start gap-2 rounded-md group transition-colors ${
+        compact ? 'py-0.5 px-3' : 'py-1.5 px-4 border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40'
+      } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
-      onMouseEnter={(e) => {
-        if (!isDragging && !isEditing && !isDragOver) {
-          e.currentTarget.style.backgroundColor = `${containerColor}15`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging && !isEditing && !isDragOver) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
-      }}
       onClick={(e) => {
         // Don't toggle if clicking on interactive elements
         const target = e.target as HTMLElement;
@@ -118,9 +122,8 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       >
         <GripVertical size={16} />
       </div>
-      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <AlignLeft size={18} className="text-gray-500" />
-      </div>
+      {/* Spacer to align text with task title (same width as task checkbox) */}
+      <div className="w-5 h-5 flex-shrink-0" aria-hidden />
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <div 
@@ -168,21 +171,23 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         )}
       </div>
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          <span>Created: {formatTimestamp(task.createdAt)}</span>
-          {task.updatedAt && task.updatedAt !== task.createdAt && (
-            <span>•</span>
-          )}
-          {task.updatedAt && task.updatedAt !== task.createdAt && (
-            <span>Edited: {formatTimestamp(task.updatedAt)}</span>
-          )}
-        </div>
+        {!task.entryId && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span>Created: {formatTimestamp(task.createdAt)}</span>
+            {task.updatedAt && task.updatedAt !== task.createdAt && (
+              <span>•</span>
+            )}
+            {task.updatedAt && task.updatedAt !== task.createdAt && (
+              <span>Edited: {formatTimestamp(task.updatedAt)}</span>
+            )}
+          </div>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
             deleteTask(task.id);
           }}
-          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0"
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
           aria-label="Delete text block"
         >
           <Trash2 size={16} />

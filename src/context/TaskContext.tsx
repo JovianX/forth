@@ -5,7 +5,8 @@ import {
   getTimestamp, 
   validateContainerParent, 
   getNextContainerColor,
-  getNextPriority
+  getNextPriority,
+  priorityForOrderIndex
 } from '../utils/taskUtils';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -17,18 +18,18 @@ interface TaskContextType {
   setMode: (mode: Mode) => void;
   toggleContainerExpanded: (containerId: string) => void;
   isContainerExpanded: (containerId: string) => boolean;
-  addContainer: (name: string, parentId: string | null, insertAfterId?: string | null) => void;
+  addContainer: (name: string, parentId: string | null, insertAfterId?: string | null) => string | undefined;
   updateContainer: (id: string, updates: Partial<Container>) => void;
   deleteContainer: (id: string) => void;
   reorderContainers: (activeId: string, overId: string | null) => void;
-  addTask: (title: string, containerId: string, priority?: number, type?: 'task' | 'note' | 'text-block', content?: string) => void;
+  addTask: (title: string, containerId: string, priority?: number, type?: 'task' | 'note' | 'text-block' | 'entry', content?: string, onCreated?: (newTaskId: string) => void) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   toggleTaskCompletion: (id: string) => void;
-  reorderTaskPriority: (taskId: string, newPriority: number) => void;
-  moveTaskPriority: (taskId: string, direction: 'up' | 'down') => void;
   reorderTasks: (activeId: string, overId: string | null) => void;
   reorderTasksInContainer: (containerId: string, activeId: string, overId: string | null) => void;
+  reorderTasksInEntry: (entryId: string, activeId: string, overId: string | null) => void;
+  reorderTasksAmong: (taskIds: string[], activeId: string, overId: string) => void;
   moveTaskToContainer: (taskId: string, targetContainerId: string) => void;
   addNoteBlock: (noteId: string, type: 'text' | 'task') => void;
   updateNoteBlock: (noteId: string, blockId: string, updates: Partial<NoteBlock>) => void;
@@ -40,6 +41,8 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useLocalStorage();
+  const addTaskNewIdRef = React.useRef<string | null>(null);
+  const addTaskOnCreatedRef = React.useRef<((newTaskId: string) => void) | null>(null);
 
   // Migrate containers without colors (only on initial load)
   useEffect(() => {
@@ -84,9 +87,10 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addContainer = useCallback((name: string, parentId: string | null, insertAfterId?: string | null) => {
     if (!validateContainerParent('', parentId, state.containers)) {
       console.error('Invalid container parent: would create cycle');
-      return;
+      return undefined;
     }
 
+    const newContainerId = generateId();
     setState((prev) => {
       // Get siblings (containers with the same parent)
       const siblings = prev.containers
@@ -123,7 +127,7 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const newContainer: Container = {
-        id: generateId(),
+        id: newContainerId,
         name,
         parentId,
         color: getNextContainerColor(parentId, prev.containers),
@@ -136,7 +140,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         containers: [...prev.containers, newContainer],
       };
     });
-  }, [setState]);
+    return newContainerId;
+  }, [setState, state.containers]);
 
   const updateContainer = useCallback((id: string, updates: Partial<Container>) => {
     setState((prev) => ({
@@ -177,19 +182,12 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, [setState]);
 
-  const addTask = useCallback((title: string, containerId: string, priority?: number, type: 'task' | 'note' | 'text-block' = 'task', content?: string) => {
+  const addTask = useCallback((title: string, containerId: string, _priority?: number, type: 'task' | 'note' | 'text-block' | 'entry' = 'task', content?: string, onCreated?: (newTaskId: string) => void) => {
+    addTaskOnCreatedRef.current = onCreated ?? null;
     setState((prev) => {
       const existingTasks = prev.tasks.filter((t) => t.containerId === containerId);
       const existingPriorities = existingTasks.map((t) => t.priority);
-      
-      let taskPriority: number;
-      if (priority !== undefined && priority !== null && !isNaN(priority)) {
-        // Use the provided priority directly
-        taskPriority = priority;
-      } else {
-        // No priority provided - use getNextPriority which handles empty containers
-        taskPriority = getNextPriority(existingPriorities);
-      }
+      const taskPriority = getNextPriority(existingPriorities);
 
       const newTask: Task = {
         id: generateId(),
@@ -204,56 +202,60 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isQuickTask: false,
       };
 
-      // If a specific priority was provided, insert at the correct position
-      if (priority !== undefined && priority !== null && !isNaN(priority) && existingTasks.length > 0) {
-        // Get all tasks in the container, sorted by priority (descending - highest first)
-        const containerTasks = [...existingTasks].sort((a, b) => b.priority - a.priority);
-        
-        // Find the insertion index: insert before the first task with priority <= taskPriority
-        let insertIndex = containerTasks.length;
-        for (let i = 0; i < containerTasks.length; i++) {
-          if (taskPriority >= containerTasks[i].priority) {
-            insertIndex = i;
-            break;
-          }
-        }
-        
-        // Insert the new task at the calculated position
-        containerTasks.splice(insertIndex, 0, newTask);
-        
-        // Combine with tasks from other containers (keep them unchanged)
-        const otherTasks = prev.tasks.filter((t) => t.containerId !== containerId);
-        
-        return {
-          ...prev,
-          tasks: [...otherTasks, ...containerTasks],
-        };
+      if (onCreated) {
+        addTaskNewIdRef.current = newTask.id;
       }
 
-      // No specific priority - just add to the end
       return {
         ...prev,
         tasks: [...prev.tasks, newTask],
       };
     });
+    // useState's setState does not support a completion callback; run onCreated after React commits
+    if (onCreated) {
+      setTimeout(() => {
+        const id = addTaskNewIdRef.current;
+        const cb = addTaskOnCreatedRef.current;
+        addTaskNewIdRef.current = null;
+        addTaskOnCreatedRef.current = null;
+        if (id && cb) cb(id);
+      }, 0);
+    }
   }, [setState]);
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((t) => 
-        t.id === id 
-          ? { ...t, ...updates, updatedAt: getTimestamp() } 
-          : t
-      ),
-    }));
+    const now = getTimestamp();
+    setState((prev) => {
+      let nextTasks = prev.tasks.map((t) =>
+        t.id === id ? { ...t, ...updates, updatedAt: now } : t
+      );
+      // When updating a task that belongs to an entry, bump the entry's updatedAt
+      const updated = nextTasks.find((t) => t.id === id);
+      const entryId = updated?.entryId ?? (prev.tasks.find((t) => t.id === id)?.entryId);
+      if (entryId) {
+        nextTasks = nextTasks.map((t) =>
+          t.id === entryId ? { ...t, updatedAt: now } : t
+        );
+      }
+      return { ...prev, tasks: nextTasks };
+    });
   }, [setState]);
 
   const deleteTask = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.filter((t) => t.id !== id),
-    }));
+    setState((prev) => {
+      const task = prev.tasks.find((t) => t.id === id);
+      const idsToDelete = new Set<string>([id]);
+      // When deleting an entry (entity), also delete all its tasks and text blocks
+      if (task?.type === 'entry') {
+        prev.tasks
+          .filter((t) => t.entryId === id)
+          .forEach((t) => idsToDelete.add(t.id));
+      }
+      return {
+        ...prev,
+        tasks: prev.tasks.filter((t) => !idsToDelete.has(t.id)),
+      };
+    });
   }, [setState]);
 
   const toggleTaskCompletion = useCallback((id: string) => {
@@ -265,131 +267,139 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }));
   }, [setState]);
 
-  const reorderTaskPriority = useCallback((taskId: string, newPriority: number) => {
-    setState((prev) => {
-      const task = prev.tasks.find((t) => t.id === taskId);
-      if (!task) return prev;
-
-      // Update the task with the new priority
-      const updatedTasks = prev.tasks.map((t) => {
-        if (t.id === taskId) {
-          return { ...t, priority: newPriority };
-        }
-        return t;
-      });
-
-      return { ...prev, tasks: updatedTasks };
-    });
-  }, [setState]);
-
-  const moveTaskPriority = useCallback((taskId: string, direction: 'up' | 'down') => {
-    setState((prev) => {
-      const sortedTasks = [...prev.tasks].sort((a, b) => b.priority - a.priority);
-      const taskIndex = sortedTasks.findIndex((t) => t.id === taskId);
-      
-      if (taskIndex === -1) return prev;
-      if (direction === 'up' && taskIndex === 0) return prev;
-      if (direction === 'down' && taskIndex === sortedTasks.length - 1) return prev;
-
-      const targetIndex = direction === 'up' ? taskIndex - 1 : taskIndex + 1;
-      const targetTask = sortedTasks[targetIndex];
-      const currentTask = sortedTasks[taskIndex];
-      
-      // Swap priorities
-      const updatedTasks = prev.tasks.map((t) => {
-        if (t.id === taskId) {
-          return { ...t, priority: targetTask.priority };
-        }
-        if (t.id === targetTask.id) {
-          return { ...t, priority: currentTask.priority };
-        }
-        return t;
-      });
-
-      return { ...prev, tasks: updatedTasks };
-    });
-  }, [setState]);
-
   const reorderTasks = useCallback((activeId: string, overId: string | null) => {
-    if (!overId || activeId === overId) return;
+    if (!overId) return;
 
     setState((prev) => {
-      // Get sorted tasks by priority (highest first)
       const sortedTasks = [...prev.tasks].sort((a, b) => b.priority - a.priority);
-      
       const activeIndex = sortedTasks.findIndex((t) => t.id === activeId);
-      const overIndex = sortedTasks.findIndex((t) => t.id === overId);
-      
-      if (activeIndex === -1 || overIndex === -1) return prev;
+      if (activeIndex === -1) return prev;
 
-      const overTask = sortedTasks[overIndex];
-
-      // Calculate new priority for the active task
-      let newPriority: number;
-      if (overIndex === 0) {
-        // Moving to top - use priority higher than the top task
-        newPriority = overTask.priority + 1;
-      } else if (overIndex === sortedTasks.length - 1) {
-        // Moving to bottom - use priority lower than the bottom task
-        newPriority = overTask.priority - 1;
-      } else {
-        // Moving to middle - use average of adjacent tasks
-        const nextTask = sortedTasks[overIndex + (activeIndex < overIndex ? 0 : 1)];
-        const prevTask = sortedTasks[overIndex - (activeIndex > overIndex ? 0 : 1)];
-        newPriority = (nextTask.priority + prevTask.priority) / 2;
+      let resolvedOverId = overId;
+      if (resolvedOverId === activeId && activeIndex < sortedTasks.length - 1) {
+        resolvedOverId = sortedTasks[activeIndex + 1].id;
       }
+      if (resolvedOverId === activeId) return prev;
 
-      // Update the active task's priority
+      const overIndex = sortedTasks.findIndex((t) => t.id === resolvedOverId);
+      if (overIndex === -1) return prev;
+
+      const [removed] = sortedTasks.splice(activeIndex, 1);
+      const insertIndex = overIndex;
+      sortedTasks.splice(insertIndex, 0, removed);
+
+      const priorityById = new Map<string, number>();
+      sortedTasks.forEach((t, i) => priorityById.set(t.id, priorityForOrderIndex(i, sortedTasks.length)));
       const updatedTasks = prev.tasks.map((t) => {
-        if (t.id === activeId) {
-          return { ...t, priority: newPriority };
-        }
-        return t;
+        const p = priorityById.get(t.id);
+        return p !== undefined ? { ...t, priority: p } : t;
       });
-
       return { ...prev, tasks: updatedTasks };
     });
   }, [setState]);
 
   const reorderTasksInContainer = useCallback((containerId: string, activeId: string, overId: string | null) => {
-    if (!overId || activeId === overId) return;
+    if (!overId) return;
 
     setState((prev) => {
-      // Get tasks in this container, sorted by priority (highest first)
       const containerTasks = prev.tasks
         .filter((t) => t.containerId === containerId)
         .sort((a, b) => b.priority - a.priority);
-      
       const activeIndex = containerTasks.findIndex((t) => t.id === activeId);
-      const overIndex = containerTasks.findIndex((t) => t.id === overId);
-      
-      if (activeIndex === -1 || overIndex === -1) return prev;
+      if (activeIndex === -1) return prev;
 
-      const overTask = containerTasks[overIndex];
-
-      // Calculate new priority for the active task
-      let newPriority: number;
-      if (overIndex === 0) {
-        // Moving to top - use priority higher than the top task
-        newPriority = overTask.priority + 1;
-      } else if (overIndex === containerTasks.length - 1) {
-        // Moving to bottom - use priority lower than the bottom task
-        newPriority = overTask.priority - 1;
-      } else {
-        // Moving to middle - use average of adjacent tasks
-        const nextTask = containerTasks[overIndex + (activeIndex < overIndex ? 0 : 1)];
-        const prevTask = containerTasks[overIndex - (activeIndex > overIndex ? 0 : 1)];
-        newPriority = (nextTask.priority + prevTask.priority) / 2;
+      let resolvedOverId = overId;
+      if (resolvedOverId === activeId && activeIndex < containerTasks.length - 1) {
+        resolvedOverId = containerTasks[activeIndex + 1].id;
       }
+      if (resolvedOverId === activeId) return prev;
 
-      // Update the active task's priority
+      const overIndex = containerTasks.findIndex((t) => t.id === resolvedOverId);
+      if (overIndex === -1) return prev;
+
+      const [removed] = containerTasks.splice(activeIndex, 1);
+      const insertIndex = overIndex;
+      containerTasks.splice(insertIndex, 0, removed);
+
+      const priorityById = new Map<string, number>();
+      containerTasks.forEach((t, i) => priorityById.set(t.id, priorityForOrderIndex(i, containerTasks.length)));
       const updatedTasks = prev.tasks.map((t) => {
-        if (t.id === activeId) {
-          return { ...t, priority: newPriority };
-        }
-        return t;
+        if (t.containerId !== containerId) return t;
+        const p = priorityById.get(t.id);
+        return p !== undefined ? { ...t, priority: p } : t;
       });
+      return { ...prev, tasks: updatedTasks };
+    });
+  }, [setState]);
 
+  const reorderTasksInEntry = useCallback((entryId: string, activeId: string, overId: string | null) => {
+    if (!overId) return;
+
+    setState((prev) => {
+      const entryTasks = prev.tasks
+        .filter((t) => t.entryId === entryId)
+        .sort((a, b) => b.priority - a.priority);
+      const activeIndex = entryTasks.findIndex((t) => t.id === activeId);
+      if (activeIndex === -1) return prev;
+
+      let resolvedOverId = overId;
+      if (resolvedOverId === activeId && activeIndex < entryTasks.length - 1) {
+        resolvedOverId = entryTasks[activeIndex + 1].id;
+      }
+      if (resolvedOverId === activeId) return prev;
+
+      const overIndex = entryTasks.findIndex((t) => t.id === resolvedOverId);
+      if (overIndex === -1) return prev;
+
+      const [removed] = entryTasks.splice(activeIndex, 1);
+      const insertIndex = overIndex;
+      entryTasks.splice(insertIndex, 0, removed);
+
+      const priorityById = new Map<string, number>();
+      entryTasks.forEach((t, i) => priorityById.set(t.id, priorityForOrderIndex(i, entryTasks.length)));
+      const updatedTasks = prev.tasks.map((t) => {
+        if (t.entryId !== entryId) return t;
+        const p = priorityById.get(t.id);
+        return p !== undefined ? { ...t, priority: p } : t;
+      });
+      return { ...prev, tasks: updatedTasks };
+    });
+  }, [setState]);
+
+  const reorderTasksAmong = useCallback((taskIds: string[], activeId: string, overId: string) => {
+    if (!overId || taskIds.length === 0) return;
+
+    const idSet = new Set(taskIds);
+    if (!idSet.has(activeId)) return;
+
+    setState((prev) => {
+      const sortedTasks = prev.tasks
+        .filter((t) => idSet.has(t.id))
+        .sort((a, b) => b.priority - a.priority);
+      const activeIndex = sortedTasks.findIndex((t) => t.id === activeId);
+      if (activeIndex === -1) return prev;
+
+      // When overId === activeId (e.g. closestCenter didn't update when dragging down), treat as move down one
+      let resolvedOverId = overId;
+      if (resolvedOverId === activeId && activeIndex < sortedTasks.length - 1) {
+        resolvedOverId = sortedTasks[activeIndex + 1].id;
+      }
+      if (resolvedOverId === activeId) return prev;
+      if (!idSet.has(resolvedOverId)) return prev;
+
+      const overIndex = sortedTasks.findIndex((t) => t.id === resolvedOverId);
+      if (overIndex === -1) return prev;
+
+      const [removed] = sortedTasks.splice(activeIndex, 1);
+      const insertIndex = overIndex;
+      sortedTasks.splice(insertIndex, 0, removed);
+
+      const priorityById = new Map<string, number>();
+      sortedTasks.forEach((t, i) => priorityById.set(t.id, priorityForOrderIndex(i, sortedTasks.length)));
+      const updatedTasks = prev.tasks.map((t) => {
+        const p = priorityById.get(t.id);
+        return p !== undefined ? { ...t, priority: p } : t;
+      });
       return { ...prev, tasks: updatedTasks };
     });
   }, [setState]);
@@ -413,36 +423,49 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const isMovingToDifferentParent = activeContainer.parentId !== overContainer.parentId;
       const targetParentId = isMovingToDifferentParent ? overContainer.parentId : activeContainer.parentId;
 
-      // Get siblings (containers with the same parent)
-      const siblings = prev.containers
-        .filter((c) => c.parentId === targetParentId && c.id !== activeId)
+      // Get all siblings including the active container, sorted by order
+      const allSiblings = prev.containers
+        .filter((c) => c.parentId === targetParentId)
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-      const overIndex = siblings.findIndex((c) => c.id === overId);
+      const activeIndex = allSiblings.findIndex((c) => c.id === activeId);
+      const overIndex = allSiblings.findIndex((c) => c.id === overId);
+
+      if (activeIndex === -1 || overIndex === -1) return prev;
+
+      // Remove active container from its current position
+      const siblingsWithoutActive = allSiblings.filter((c) => c.id !== activeId);
       
-      // Insert active container at the correct position
-      if (overIndex === -1) {
-        // Over container not found in siblings, append to end
-        siblings.push(activeContainer);
+      // Determine insertion position
+      // If dragging down (activeIndex < overIndex), insert after overIndex
+      // If dragging up (activeIndex > overIndex), insert at overIndex
+      let insertIndex: number;
+      if (activeIndex < overIndex) {
+        // Dragging down: insert after the target
+        insertIndex = overIndex; // After removing active, overIndex is still correct
       } else {
-        siblings.splice(overIndex, 0, activeContainer);
+        // Dragging up: insert before the target
+        insertIndex = overIndex;
       }
+
+      // Insert active container at the correct position
+      siblingsWithoutActive.splice(insertIndex, 0, activeContainer);
 
       // Update containers: change parent if needed and update orders
       const updatedContainers = prev.containers.map((c) => {
         if (c.id === activeId) {
           // Update active container's parent and order
-          const newIndex = siblings.findIndex((s) => s.id === c.id);
+          const newIndex = siblingsWithoutActive.findIndex((s) => s.id === c.id);
           return {
             ...c,
             parentId: targetParentId,
-            order: newIndex >= 0 ? newIndex : (targetParentId === null ? siblings.length - 1 : 0),
+            order: newIndex >= 0 ? newIndex : siblingsWithoutActive.length - 1,
           };
         }
 
         // Update orders for siblings
         if (c.parentId === targetParentId && c.id !== activeId) {
-          const newIndex = siblings.findIndex((s) => s.id === c.id);
+          const newIndex = siblingsWithoutActive.findIndex((s) => s.id === c.id);
           if (newIndex >= 0) {
             return { ...c, order: newIndex };
           }
@@ -589,10 +612,10 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateTask,
     deleteTask,
     toggleTaskCompletion,
-    reorderTaskPriority,
-    moveTaskPriority,
     reorderTasks,
     reorderTasksInContainer,
+    reorderTasksInEntry,
+    reorderTasksAmong,
     moveTaskToContainer,
     reorderContainers,
     addNoteBlock,

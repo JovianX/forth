@@ -134,7 +134,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             e.stopPropagation();
             onDelete(block.id);
           }}
-          className="opacity-0 group-hover/block:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all"
+          className="opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           aria-label="Delete block"
         >
           <Trash2 size={14} />
@@ -183,7 +183,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
               e.stopPropagation();
               onDelete(block.id);
             }}
-            className="opacity-0 group-hover/block:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all"
+            className="opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
             aria-label="Delete block"
           >
             <Trash2 size={14} />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -30,17 +30,24 @@ export const TaskList: React.FC<TaskListProps> = ({
   showCompleted,
   onShowCompletedChange,
 }) => {
-  const { tasks, containers, toggleTaskCompletion, reorderTasks } = useTaskContext();
+  const { tasks, containers, toggleTaskCompletion, reorderTasksAmong } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
-  
+  const [justDroppedId, setJustDroppedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!justDroppedId) return;
+    const t = setTimeout(() => setJustDroppedId(null), 150);
+    return () => clearTimeout(t);
+  }, [justDroppedId]);
+
   // Use first container color or default neutral color for checkbox accent
   const rootContainers = containers.filter((c) => c.parentId === null);
   const defaultAccentColor = rootContainers.length > 0 ? rootContainers[0].color : '#6B7280';
 
 
   const sortedTasks = useMemo(() => {
-    // Filter out notes and text-blocks - execution mode is only for actionable tasks
-    let filtered = tasks.filter((t) => t.type !== 'note' && t.type !== 'text-block');
+    // Show only tasks with a non-empty title (exclude notes, text-blocks, entries, and draft/placeholder tasks)
+    let filtered = tasks.filter((t) => t.type === 'task' && (t.title ?? '').trim() !== '');
 
     // Filter by selected containers
     if (selectedContainers !== null && selectedContainers.size > 0) {
@@ -75,13 +82,13 @@ export const TaskList: React.FC<TaskListProps> = ({
     return sortedTasks.find((t) => t.id === activeId);
   }, [sortedTasks, activeId]);
 
-  // Calculate actionable tasks (exclude notes and text-blocks)
-  const actionableTasks = useMemo(() => {
-    return tasks.filter((t) => t.type !== 'note' && t.type !== 'text-block');
+  // Count only tasks with a title (same as what we display)
+  const taskOnlyTasks = useMemo(() => {
+    return tasks.filter((t) => t.type === 'task' && (t.title ?? '').trim() !== '');
   }, [tasks]);
 
-  const totalActionableCount = actionableTasks.length;
-  const completedActionableCount = actionableTasks.filter((t) => t.completed).length;
+  const totalActionableCount = taskOnlyTasks.length;
+  const completedActionableCount = taskOnlyTasks.filter((t) => t.completed).length;
   const displayedCount = sortedTasks.length;
   const displayedCompletedCount = sortedTasks.filter((t) => t.completed).length;
 
@@ -102,11 +109,14 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const activeIdStr = active.id as string;
 
     setActiveId(null);
 
-    if (over && active.id !== over.id) {
-      reorderTasks(active.id as string, over.id as string);
+    if (over) {
+      const taskIds = sortedTasks.map((t) => t.id);
+      reorderTasksAmong(taskIds, activeIdStr, over.id as string);
+      setJustDroppedId(activeIdStr); // Suppress transition on dropped item to avoid glitch when moving to higher priority
     }
   };
 
@@ -117,7 +127,7 @@ export const TaskList: React.FC<TaskListProps> = ({
       <div className="mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Execute</h2>
         <p className="text-sm sm:text-base text-gray-600 mb-6">
-          View and prioritize all your tasks. Drag and drop to reorder by priority.
+          View and manage your tasks. Drag and drop to reorder.
         </p>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm mb-6">
@@ -152,7 +162,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             {totalActionableCount === 0
               ? 'No tasks yet. Switch to Create mode to add tasks!'
               : isFiltered
-              ? 'No tasks match your current filters. Try adjusting your container selection or show completed tasks.'
+              ? 'No tasks match your current filters. Try adjusting your topic selection or show completed tasks.'
               : 'All tasks are completed. Uncheck "Show completed tasks" to hide them.'}
           </p>
           {totalActionableCount === 0 && (
@@ -179,6 +189,7 @@ export const TaskList: React.FC<TaskListProps> = ({
                   task={task}
                   containers={containers}
                   onToggle={() => toggleTaskCompletion(task.id)}
+                  justDropped={task.id === justDroppedId}
                 />
               ))}
             </div>

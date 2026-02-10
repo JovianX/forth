@@ -5,19 +5,34 @@ import { GripVertical, Trash2, Zap } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { useTaskContext } from '../../context/TaskContext';
+import { getPriorityAfter } from '../../utils/taskUtils';
 
 interface TaskNodeProps {
   task: Task;
   depth: number;
   isDragOver?: boolean;
+  /** When true and dragging, hide the source so only DragOverlay is visible (fixes wrong position) */
+  hideSourceWhileDragging?: boolean;
+  /** Tighter spacing for list-like layouts (e.g. plan entries) */
+  compact?: boolean;
 }
 
-export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = false }) => {
-  const { toggleTaskCompletion, deleteTask, updateTask, containers } = useTaskContext();
+const NEW_TASK_EDIT_WINDOW_MS = 2000;
+
+export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false }) => {
+  const { tasks, toggleTaskCompletion, deleteTask, updateTask, addTask } = useTaskContext();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+  const hasAutoFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAutoFocusedRef.current) return;
+    if (Date.now() - task.createdAt > NEW_TASK_EDIT_WINDOW_MS) return;
+    hasAutoFocusedRef.current = true;
+    setIsEditing(true);
+  }, [task.id, task.createdAt]);
+
   const {
     attributes,
     listeners,
@@ -27,21 +42,19 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     isDragging,
   } = useSortable({ id: task.id });
 
-  const container = containers.find((c) => c.id === task.containerId);
-  const containerColor = container?.color || '#3B82F6';
-
+  const isSourceHidden = hideSourceWhileDragging && isDragging;
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isSourceHidden ? undefined : CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isSourceHidden ? 0 : (isDragging ? 0.4 : 1),
     marginLeft: `${depth * 24}px`,
     backgroundColor: 'transparent',
+    pointerEvents: isSourceHidden ? 'none' as const : undefined,
   };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      // Place cursor at the end of the text
       const length = inputRef.current.value.length;
       inputRef.current.setSelectionRange(length, length);
     }
@@ -51,11 +64,17 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     setTitle(task.title);
   }, [task.title]);
 
+  const isNewTask = Date.now() - task.createdAt <= NEW_TASK_EDIT_WINDOW_MS;
+
   const handleSave = () => {
-    if (title.trim() && title.trim() !== task.title) {
-      updateTask(task.id, { title: title.trim() });
-    } else {
+    if (!title.trim()) {
+      if (isNewTask) {
+        deleteTask(task.id);
+        return;
+      }
       setTitle(task.title);
+    } else if (title.trim() !== task.title) {
+      updateTask(task.id, { title: title.trim() });
     }
     setIsEditing(false);
   };
@@ -67,9 +86,37 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!title.trim() && isNewTask) {
+        deleteTask(task.id);
+        return;
+      }
       handleSave();
+      // Create a new task below so user can keep typing without clicking "Add task"
+      const newOrder = task.entryId != null ? (task.entryOrder ?? 0) + 1 : undefined;
+      const onCreated =
+        task.entryId != null && newOrder != null
+          ? (newTaskId: string) => {
+              updateTask(newTaskId, { entryId: task.entryId, entryOrder: newOrder });
+              tasks
+                .filter(
+                  (t) =>
+                    t.entryId === task.entryId &&
+                    (t.entryOrder ?? 0) >= newOrder &&
+                    t.id !== newTaskId
+                )
+                .forEach((item) => {
+                  updateTask(item.id, { entryOrder: (item.entryOrder ?? 0) + 1 });
+                });
+            }
+          : undefined;
+      addTask('', task.containerId, getPriorityAfter(task.priority), 'task', undefined, onCreated);
     } else if (e.key === 'Escape') {
-      handleCancel();
+      if (!title.trim() && isNewTask) {
+        deleteTask(task.id);
+      } else {
+        handleCancel();
+      }
     }
   };
 
@@ -77,19 +124,11 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-1.5 px-4 rounded-md group ${
+      className={`flex items-center gap-2 rounded-md group ${
+        compact ? 'py-0.5 px-3' : 'py-1.5 px-4'
+      } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
-      onMouseEnter={(e) => {
-        if (!isDragging && !isEditing && !isDragOver) {
-          e.currentTarget.style.backgroundColor = `${containerColor}15`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging && !isEditing && !isDragOver) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
-      }}
     >
       <div
         {...attributes}
@@ -113,7 +152,8 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className={`flex-1 px-1 py-0.5 bg-transparent border-none outline-none focus:outline-none ${
+          placeholder="What needs to be done?"
+          className={`flex-1 px-1 py-0.5 bg-transparent border-none outline-none focus:outline-none placeholder:text-gray-400 ${
             task.completed
               ? 'line-through text-gray-500'
               : 'text-gray-900'
@@ -121,17 +161,17 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <span
-            className={`inline-block cursor-text px-1 py-0.5 ${
+            className={`inline-block cursor-text px-1 py-0.5 truncate ${
               task.completed
                 ? 'line-through text-gray-500'
-                : 'text-gray-900'
+                : task.title.trim() ? 'text-gray-900' : 'text-gray-400 italic'
             }`}
             onClick={() => setIsEditing(true)}
             title="Click to edit"
           >
-            {task.title}
+            {task.title.trim() || 'Add task…'}
           </span>
           <button
             onClick={(e) => {
@@ -153,7 +193,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all ml-auto"
+        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ml-auto"
         aria-label="Delete task"
       >
         <Trash2 size={16} />

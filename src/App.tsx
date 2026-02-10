@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ModeSwitcher } from './components/ModeSwitcher';
 import { ContainerTree } from './components/create-mode/ContainerTree';
 import { TaskList } from './components/execution-mode/TaskList';
+import { PlanView } from './components/plan-mode/PlanView';
 import { ColorPalettePreview } from './components/ColorPalettePreview';
 import { useTaskContext } from './context/TaskContext';
 import { getPalette } from './utils/paletteUtils';
@@ -148,17 +149,23 @@ function App() {
             : undefined
         }
       />
-      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
-        <div className="transition-opacity duration-300">
+      <main className="flex-1 overflow-hidden w-full">
+        <div className="transition-opacity duration-300 h-full">
           {mode === 'create' ? (
-            <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} />
+            <div className="h-full overflow-y-auto">
+              <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} />
+            </div>
+          ) : mode === 'execution' ? (
+            <div className="h-full overflow-y-auto">
+              <TaskList
+                selectedContainers={selectedContainers}
+                showCompleted={showCompleted}
+                onSelectedContainersChange={setSelectedContainers}
+                onShowCompletedChange={setShowCompleted}
+              />
+            </div>
           ) : (
-            <TaskList
-              selectedContainers={selectedContainers}
-              showCompleted={showCompleted}
-              onSelectedContainersChange={setSelectedContainers}
-              onShowCompletedChange={setShowCompleted}
-            />
+            <PlanView />
           )}
         </div>
       </main>

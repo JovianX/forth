@@ -14,12 +14,14 @@ interface TaskItemProps {
   task: Task;
   containers: Container[];
   onToggle: () => void;
+  justDropped?: boolean;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   containers,
   onToggle,
+  justDropped = false,
 }) => {
   const {
     attributes,
@@ -28,7 +30,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({
+    id: task.id,
+    animateLayoutChanges: () => false, // Prevents weird animation when dropping at first (or any) position
+  });
 
   const containerPath = getContainerPath(task.containerId, containers);
   const containerName = containerPath.length > 0 ? containerPath[containerPath.length - 1] : 'Unknown';
@@ -43,8 +48,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   const isTextBlock = task.type === 'text-block';
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition, // No transition during drag for instant feedback
+    transform: justDropped ? undefined : CSS.Transform.toString(transform),
+    transition: isDragging || justDropped ? 'none' : transition,
     opacity: isDragging ? 0.5 : 1,
     borderColor: containerBorderColor,
   };

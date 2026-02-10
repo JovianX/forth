@@ -23,10 +23,14 @@ interface NoteNodeProps {
   task: Task;
   depth: number;
   isDragOver?: boolean;
+  /** When true and dragging, hide the source so only DragOverlay is visible (fixes wrong position) */
+  hideSourceWhileDragging?: boolean;
+  /** Tighter spacing for list-like layouts (e.g. plan entries) */
+  compact?: boolean;
 }
 
-export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = false }) => {
-  const { deleteTask, updateTask, containers, addNoteBlock, updateNoteBlock, deleteNoteBlock, reorderNoteBlocks } = useTaskContext();
+export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false }) => {
+  const { deleteTask, updateTask, addNoteBlock, updateNoteBlock, deleteNoteBlock, reorderNoteBlocks } = useTaskContext();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -45,15 +49,14 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
     isDragging,
   } = useSortable({ id: task.id });
 
-  const container = containers.find((c) => c.id === task.containerId);
-  const containerColor = container?.color || '#3B82F6';
-
+  const isSourceHidden = hideSourceWhileDragging && isDragging;
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isSourceHidden ? undefined : CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isSourceHidden ? 0 : (isDragging ? 0.4 : 1),
     marginLeft: `${depth * 24}px`,
     backgroundColor: 'transparent',
+    pointerEvents: isSourceHidden ? 'none' as const : undefined,
   };
 
   const blockSensors = useSensors(
@@ -129,20 +132,12 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`py-1.5 px-4 rounded-md group border-l-2 border-purple-300 bg-purple-50/20 hover:bg-purple-50/40 transition-colors cursor-pointer ${
+      className={`rounded-md group border-l-2 border-purple-300 bg-purple-50/20 hover:bg-purple-50/40 transition-colors cursor-pointer ${
+        compact ? 'py-0.5 px-3' : 'py-1.5 px-4'
+      } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
       }`}
       onClick={handleNoteClick}
-      onMouseEnter={(e) => {
-        if (!isDragging && !isEditingTitle && !isDragOver) {
-          e.currentTarget.style.backgroundColor = `${containerColor}15`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging && !isEditingTitle && !isDragOver) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
-      }}
     >
       <div className="flex items-start gap-2">
         <div
@@ -264,7 +259,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
             e.stopPropagation();
             deleteTask(task.id);
           }}
-          className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all flex-shrink-0 ml-auto"
+          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 ml-auto"
           aria-label="Delete note"
         >
           <Trash2 size={16} />

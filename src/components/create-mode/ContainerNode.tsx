@@ -6,7 +6,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronRight, Folder, Trash2, CheckSquare, AlignLeft, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Zap, Trash2, CheckSquare, AlignLeft, GripVertical } from 'lucide-react';
 import { Container } from '../../types';
 import { TaskNode } from './TaskNode';
 import { NoteNode } from './NoteNode';
@@ -197,7 +197,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
         ) : (
           <div className="w-[26px]" />
         )}
-        <Folder size={18} style={{ color: container.color }} />
+        <Zap size={18} style={{ color: container.color }} />
         {isEditing ? (
           <input
             ref={inputRef}
@@ -276,12 +276,12 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
             }}
             aria-label="Add container"
           >
-            <Folder size={16} />
+            <Zap size={16} />
           </button>
         </div>
         <button
           onClick={() => deleteContainer(container.id)}
-          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100 ml-auto"
+          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ml-auto"
           aria-label="Delete container"
         >
           <Trash2 size={16} />

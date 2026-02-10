@@ -126,38 +126,35 @@ export const validateContainerParent = (
   return true;
 };
 
-// Priority utility functions
-// Simple priority system: higher number = higher priority (appears first)
+// Priority utility: higher number = higher priority (appears first). Base 50, step 10.
+
+const PRIORITY_BASE = 50;
+const PRIORITY_STEP = 10;
 
 /**
- * Gets the next priority for a new task in a container
- * Returns 0 for empty containers, otherwise maxPriority + 1
+ * Next priority for a new task: 50 if empty, otherwise max + 10.
  */
 export const getNextPriority = (existingPriorities: number[]): number => {
-  if (existingPriorities.length === 0) return 0;
-  const maxPriority = Math.max(...existingPriorities);
-  return maxPriority + 1;
+  if (existingPriorities.length === 0) return PRIORITY_BASE;
+  return Math.max(...existingPriorities) + PRIORITY_STEP;
 };
 
 /**
- * Calculates a priority between two priorities for insertion
+ * Priority for the task at position index in a list of count tasks (index 0 = highest).
+ * Used to normalize order after reordering: 50, 60, 70, ...
  */
-export const getPriorityBetween = (higherPriority: number, lowerPriority: number): number => {
-  return (higherPriority + lowerPriority) / 2;
+export const priorityForOrderIndex = (index: number, count: number): number => {
+  if (count <= 0) return PRIORITY_BASE;
+  return PRIORITY_BASE + (count - 1 - index) * PRIORITY_STEP;
 };
 
-/**
- * Calculates priority for inserting after a task (below it)
- * Returns a priority lower than the given priority
- */
-export const getPriorityAfter = (priority: number): number => {
-  return priority - 1;
-};
+/** Priority for inserting after a task (below it). Can be below PRIORITY_BASE so the new task actually sorts lower. */
+export const getPriorityAfter = (priority: number): number =>
+  priority - PRIORITY_STEP;
 
-/**
- * Calculates priority for inserting before a task (above it)
- * Returns a priority higher than the given priority
- */
-export const getPriorityBefore = (priority: number): number => {
-  return priority + 1;
-};
+/** Priority for inserting before a task (above it). */
+export const getPriorityBefore = (priority: number): number => priority + PRIORITY_STEP;
+
+/** Priority between two tasks (for dividers). */
+export const getPriorityBetween = (higherPriority: number, lowerPriority: number): number =>
+  (higherPriority + lowerPriority) / 2;

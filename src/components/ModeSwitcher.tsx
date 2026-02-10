@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FolderTree, ListChecks, User, Palette, Plus } from 'lucide-react';
+import { ClipboardList, ListChecks, User, Palette, Plus } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
 import { Mode, Container } from '../types';
 import { getPalette } from '../utils/paletteUtils';
@@ -1260,14 +1260,14 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
 
   const modes: { value: Mode; label: string; icon: React.ReactNode }[] = [
     {
-      value: 'create',
-      label: 'Create',
-      icon: <FolderTree size={20} />,
+      value: 'plan',
+      label: 'Plan',
+      icon: <ClipboardList size={20} strokeWidth={2} />,
     },
     {
       value: 'execution',
       label: 'Execute',
-      icon: <ListChecks size={20} />,
+      icon: <ListChecks size={20} strokeWidth={2} />,
     },
   ];
 
@@ -1370,10 +1370,10 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
                   e.currentTarget.style.backgroundColor = `${primaryLight}80`;
                   e.currentTarget.style.borderColor = borderColor;
                 }}
-                aria-label="Add root container"
+                aria-label="Add topic"
               >
                 <Plus size={18} />
-                <span className="hidden sm:inline">Add Container</span>
+                <span className="hidden sm:inline">Add Topic</span>
                 <span className="sm:hidden">Add</span>
               </button>
             )}
@@ -1422,7 +1422,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
                 >
                   {m.icon}
                   <span className="hidden sm:inline">{m.label}</span>
-                  <span className="sm:hidden">{m.value === 'create' ? 'Create' : 'Execute'}</span>
+                  <span className="sm:hidden">{m.label}</span>
                 </button>
               ))}
             </div>

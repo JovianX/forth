@@ -15,10 +15,12 @@ export interface Task {
   containerId: string;
   createdAt: number;
   updatedAt?: number; // Timestamp of last update
-  type: 'task' | 'note' | 'text-block'; // Type of item
+  type: 'task' | 'note' | 'text-block' | 'entry'; // Type of item
   content?: string; // For notes and text-blocks - deprecated for notes, use blocks instead
   blocks?: NoteBlock[]; // For notes - array of text and task blocks
   isQuickTask?: boolean; // 2-minute quick task indicator
+  entryId?: string; // For plan mode - groups tasks/text blocks into entries
+  entryOrder?: number; // Order within entry (for items) or order of entry itself
 }
 
 export interface Container {
@@ -31,10 +33,10 @@ export interface Container {
 }
 
 export interface AppState {
-  mode: 'create' | 'execution';
+  mode: 'create' | 'execution' | 'plan';
   containers: Container[];
   tasks: Task[];
   expandedContainers: Set<string> | string[]; // Store as array for JSON serialization
 }
 
-export type Mode = 'create' | 'execution';
+export type Mode = 'create' | 'execution' | 'plan';

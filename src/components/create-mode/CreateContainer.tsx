@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Folder } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useTaskContext } from '../../context/TaskContext';
 import { getNextContainerColorPreview } from '../../utils/taskUtils';
 
@@ -8,7 +8,7 @@ interface CreateContainerProps {
   depth: number;
   isCreating: boolean;
   insertAfterId?: string | null;
-  onCreated?: () => void;
+  onCreated?: (containerId?: string) => void;
   onCancel?: () => void;
 }
 
@@ -30,9 +30,9 @@ export const CreateContainer: React.FC<CreateContainerProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      addContainer(name.trim(), parentId, insertAfterId);
+      const containerId = addContainer(name.trim(), parentId, insertAfterId);
       setName('');
-      onCreated?.();
+      onCreated?.(containerId);
     }
   };
 
@@ -57,7 +57,7 @@ export const CreateContainer: React.FC<CreateContainerProps> = ({
   return (
     <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem', display: 'block' }}>
       <div
-        className="flex items-center gap-2 py-2 px-4 rounded-md group border-l-4 transition-all"
+        className="flex items-center gap-2 py-2 px-4 rounded-md group border-l-4 transition-all relative z-10"
         style={{
           marginLeft: `${depth * 24}px`,
           borderLeftColor: previewColor,
@@ -71,15 +71,15 @@ export const CreateContainer: React.FC<CreateContainerProps> = ({
         }}
       >
         <div className="w-[26px]" />
-        <Folder size={18} style={{ color: previewColor }} />
-        <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <Zap size={18} style={{ color: previewColor }} />
+        <form onSubmit={handleSubmit} className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
           <input
             ref={inputRef}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Container name..."
-            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium h-7"
+            placeholder="Topic name..."
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium h-7"
             style={{ lineHeight: '1.25rem' }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
@@ -87,24 +87,12 @@ export const CreateContainer: React.FC<CreateContainerProps> = ({
               }
             }}
             onBlur={(e) => {
-              // Cancel if empty, otherwise keep it open
+              // Cancel if empty
               if (!e.currentTarget.value.trim()) {
-                // Use setTimeout to allow submit button click to register first
-                setTimeout(() => {
-                  if (!e.currentTarget.value.trim()) {
-                    handleCancel();
-                  }
-                }, 200);
+                handleCancel();
               }
             }}
           />
-          <button
-            type="submit"
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors h-7 flex items-center"
-            style={{ lineHeight: '1.25rem' }}
-          >
-            Add
-          </button>
         </form>
       </div>
     </div>
