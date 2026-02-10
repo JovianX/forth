@@ -956,7 +956,7 @@ export const PlanView: React.FC = () => {
               <div className="bg-white rounded-lg border-2 border-gray-200 shadow-lg p-4">
                 <div className="flex items-center gap-2">
                   <Zap size={18} style={{ color: '#6B7280' }} />
-                  <span className="text-gray-700 font-medium">Topic</span>
+                  <span className="text-gray-700 font-medium">{activeItem.title || 'Topic'}</span>
                 </div>
               </div>
             ) : 'type' in activeItem && activeItem.type === 'note' ? (
