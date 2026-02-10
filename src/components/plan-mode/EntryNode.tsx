@@ -313,8 +313,26 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
         </div>
 
         {sortedItems.length === 0 ? (
-          <div className="text-center py-10 text-gray-400 text-sm rounded-lg bg-gray-50/30 border border-dashed border-gray-200/80">
-            Click "Add Task" or "Add Text" to add items to this entry
+          <div className="text-center py-10 px-4 rounded-lg bg-gray-50/30 border border-dashed border-gray-200/80">
+            <p className="text-gray-500 text-sm font-medium mb-3">Start with</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleAddTextBlock}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow transition-all"
+              >
+                <Type size={16} className="shrink-0 opacity-80" />
+                Text
+              </button>
+              <button
+                type="button"
+                onClick={handleAddTask}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow transition-all"
+              >
+                <ListTodo size={16} className="shrink-0 opacity-80" />
+                Task
+              </button>
+            </div>
           </div>
         ) : (
           <DndContext

@@ -301,16 +301,10 @@ export const PlanView: React.FC = () => {
         ? Math.max(...containerTasks.filter((t) => t.entryOrder !== undefined && t.entryOrder !== null).map((e) => e.entryOrder ?? 0)) 
         : -1;
       
-      // Set the entry order
+      // Set the entry order (user chooses first item type in EntryNode when empty)
       updateTask(entry.id, { entryOrder: maxOrder + 1 });
-      
-      // Store the entry ID for this container so we can associate the text block later
-      pendingEntryIdsRef.current.set(containerId, entry.id);
-      
-      // Create text block
-      addTask('', containerId, undefined, 'text-block', '');
     });
-  }, [tasks, addTask, updateTask]);
+  }, [tasks, updateTask]);
 
   // Effect to associate newly created text blocks with pending entries
   useEffect(() => {
