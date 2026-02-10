@@ -182,12 +182,14 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, [setState]);
 
-  const addTask = useCallback((title: string, containerId: string, _priority?: number, type: 'task' | 'note' | 'text-block' | 'entry' = 'task', content?: string, onCreated?: (newTaskId: string) => void) => {
+  const addTask = useCallback((title: string, containerId: string, priority?: number, type: 'task' | 'note' | 'text-block' | 'entry' = 'task', content?: string, onCreated?: (newTaskId: string) => void) => {
     addTaskOnCreatedRef.current = onCreated ?? null;
     setState((prev) => {
       const existingTasks = prev.tasks.filter((t) => t.containerId === containerId);
       const existingPriorities = existingTasks.map((t) => t.priority);
-      const taskPriority = getNextPriority(existingPriorities);
+      const taskPriority = priority !== undefined && typeof priority === 'number'
+        ? priority
+        : getNextPriority(existingPriorities);
 
       const newTask: Task = {
         id: generateId(),

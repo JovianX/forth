@@ -30,6 +30,7 @@ import {
   getContainerLightColor,
   getContainerDarkColor,
 } from '../../utils/colorUtils';
+import { getPriorityAfter, getPriorityBefore, getPriorityBetween } from '../../utils/taskUtils';
 import { Plus } from 'lucide-react';
 
 export const PlanView: React.FC = () => {
@@ -257,13 +258,25 @@ export const PlanView: React.FC = () => {
   const formatEntryTitleDefault = (date: Date) =>
     date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-  const handleCreateEntry = () => {
+  const handleCreateEntry = (insertAtIndex?: number) => {
     if (!selectedContainerId) return;
+    const index =
+      typeof insertAtIndex === 'number' && insertAtIndex >= 0
+        ? insertAtIndex
+        : entries.length;
+    const priority =
+      entries.length === 0
+        ? undefined
+        : index === 0
+          ? getPriorityBefore(entries[0].priority)
+          : index >= entries.length
+            ? getPriorityAfter(entries[entries.length - 1].priority)
+            : getPriorityBetween(entries[index - 1].priority, entries[index].priority);
     const maxOrder = entries.length > 0 ? Math.max(...entries.map((e) => e.entryOrder ?? 0)) : -1;
-    addTask(formatEntryTitleDefault(new Date()), selectedContainerId, undefined, 'entry');
+    addTask(formatEntryTitleDefault(new Date()), selectedContainerId, priority, 'entry');
     setTimeout(() => {
       const allTasks = tasks.filter((t) => t.containerId === selectedContainerId && t.type === 'entry');
-      const newEntry = allTasks.find((t) => !t.entryOrder && t.entryOrder !== 0);
+      const newEntry = allTasks.find((t) => t.entryOrder === undefined || t.entryOrder === null);
       if (newEntry) {
         updateTask(newEntry.id, { entryOrder: maxOrder + 1 });
       }
@@ -863,7 +876,7 @@ export const PlanView: React.FC = () => {
                       Add your first entry to start planning. You can add tasks and text, and reorder anytime.
                     </p>
                     <button
-                      onClick={handleCreateEntry}
+                      onClick={() => handleCreateEntry()}
                       className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white rounded-lg shadow-sm hover:shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2"
                       style={{
                         backgroundColor: primaryColor,
@@ -886,6 +899,18 @@ export const PlanView: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
+                    {/* Add entry at the top */}
+                    <div
+                      className="relative min-h-[12px] flex items-center group cursor-pointer -my-0.5"
+                      onClick={() => handleCreateEntry(0)}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <div className="h-px bg-gray-300 w-full" />
+                        <div className="absolute bg-gray-400 rounded-full p-1.5 shadow-md group-hover:bg-gray-500 transition-colors">
+                          <Plus size={12} className="text-white" />
+                        </div>
+                      </div>
+                    </div>
                     {entries.map((entry, index) => {
                       const entryItems = itemsByEntry.get(entry.id) || [];
 
@@ -894,7 +919,7 @@ export const PlanView: React.FC = () => {
                           {index > 0 && (
                             <div
                               className="relative min-h-[12px] flex items-center group cursor-pointer -my-0.5"
-                              onClick={handleCreateEntry}
+                              onClick={() => handleCreateEntry(index)}
                             >
                               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                 <div className="h-px bg-gray-300 w-full" />
@@ -917,7 +942,7 @@ export const PlanView: React.FC = () => {
                     {/* Add entry button at the end */}
                     <div
                       className="relative min-h-[12px] flex items-center group cursor-pointer -my-0.5"
-                      onClick={handleCreateEntry}
+                      onClick={() => handleCreateEntry()}
                     >
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         <div className="h-px bg-gray-300 w-full" />
