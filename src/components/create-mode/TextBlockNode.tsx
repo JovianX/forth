@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
-import { getPriorityAfter } from '../../utils/taskUtils';
+import { isEmptyHtml } from '../../utils/textUtils';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 
 interface TextBlockNodeProps {
@@ -15,13 +15,22 @@ interface TextBlockNodeProps {
   hideSourceWhileDragging?: boolean;
   /** Tighter spacing for list-like layouts (e.g. plan entries) */
   compact?: boolean;
+  /** When true, start in edit mode immediately (for newly created blocks) */
+  startInEditMode?: boolean;
 }
 
-export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false }) => {
-  const { deleteTask, updateTask, addTask, tasks } = useTaskContext();
-  const [isEditing, setIsEditing] = useState(false);
+export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false, startInEditMode = false }) => {
+  const { deleteTask, updateTask } = useTaskContext();
+  const [isEditing, setIsEditing] = useState(() => startInEditMode || isEmptyHtml(task.content));
   const [content, setContent] = useState(task.content || '');
   const [showShortcutHint, setShowShortcutHint] = useState(true);
+  const blockRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+
+  useEffect(() => {
+    if (startInEditMode && isEditing && blockRef.current) {
+      blockRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [startInEditMode, isEditing]);
 
   const {
     attributes,
@@ -56,15 +65,6 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     }
   }, [isEditing]);
 
-  // Auto-enter editing mode if text block is empty and was just created (within last 2 seconds)
-  useEffect(() => {
-    const isNewlyCreated = Date.now() - task.createdAt < 2000;
-    const isEmpty = !task.content || task.content.trim() === '';
-    if (isNewlyCreated && isEmpty && !isEditing) {
-      setIsEditing(true);
-    }
-  }, [task.createdAt, task.content, isEditing]);
-
   const handleSave = () => {
     if (content !== (task.content || '')) {
       updateTask(task.id, { content: content });
@@ -96,34 +96,14 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     setIsEditing(false);
   };
 
-  const handleEnter = () => {
-    handleSave();
-    const newOrder = task.entryId != null ? (task.entryOrder ?? 0) + 1 : undefined;
-    const onCreated =
-      task.entryId != null && newOrder != null
-        ? (newTaskId: string) => {
-            updateTask(newTaskId, { entryId: task.entryId, entryOrder: newOrder });
-            tasks
-              .filter(
-                (t) =>
-                  t.entryId === task.entryId &&
-                  (t.entryOrder ?? 0) >= newOrder &&
-                  t.id !== newTaskId
-              )
-              .forEach((item) => {
-                updateTask(item.id, { entryOrder: (item.entryOrder ?? 0) + 1 });
-              });
-          }
-        : undefined;
-    addTask('', task.containerId, getPriorityAfter(task.priority), 'text-block', '', onCreated);
-  };
-
-  // Check if content has actual text (strip HTML tags)
-  const hasContent = content.replace(/<[^>]*>/g, '').trim().length > 0;
+  const hasContent = !isEmptyHtml(content);
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        blockRef.current = node;
+      }}
       style={style}
       className={`flex items-center gap-2 rounded-md group transition-colors ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4 border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40'
@@ -175,15 +155,12 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
                 onChange={setContent}
                 onBlur={handleSave}
                 onSave={handleSave}
-                onEnter={handleEnter}
                 placeholder="Write text..."
                 className="w-full"
                 autoFocus={true}
+                focusImmediately={startInEditMode || isEmptyHtml(content)}
               />
               <div className={`absolute left-0 top-full pt-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
-                <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
-                <span>new block</span>
-                <span className="mx-1">·</span>
                 <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
                   {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
                 </kbd>

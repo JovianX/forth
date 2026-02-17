@@ -12,6 +12,8 @@ interface WysiwygEditorProps {
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  /** When true, focus immediately (no delay) - for newly created blocks */
+  focusImmediately?: boolean;
 }
 
 export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
@@ -23,6 +25,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   placeholder = 'Write text...',
   className = '',
   autoFocus = false,
+  focusImmediately = false,
 }) => {
   const quillRef = useRef<ReactQuill>(null);
   /** Safe getter - returns null if editor not yet instantiated (avoids "Accessing non-instantiated editor") */
@@ -85,30 +88,55 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
   useEffect(() => {
     if (!autoFocus) return;
-    const tryFocus = (attempt = 0) => {
-      const quill = getQuill();
-      if (!quill || !quill.root?.isConnected) {
-        if (attempt < 10) setTimeout(() => tryFocus(attempt + 1), 50);
-        return;
-      }
-      setTimeout(() => {
-        try {
-          if (quill.root?.isConnected) quill.focus();
-        } catch {
-          // Ignore focus errors (e.g. addRange when doc not ready)
-        }
-        setTimeout(() => {
-          if (!userClickedRef.current && quill.root?.isConnected) {
-            const currentSelection = quill.getSelection();
-            if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
-              restoreCursorPosition(quill);
+    let cancelled = false;
+    const delay = focusImmediately ? 0 : 100;
+    const retryMs = focusImmediately ? 25 : 50;
+    const maxAttempts = 30;
+
+    const focusEditor = (q: NonNullable<ReturnType<typeof getQuill>>) => {
+      if (!q.root?.isConnected) return;
+      try {
+        q.root.focus();
+        // Defer setSelection to avoid "addRange: range isn't in document" when DOM isn't ready
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (cancelled || !q.root?.isConnected) return;
+            const len = q.getLength();
+            if (len < 1) return; // Editor not ready yet
+            // Don't overwrite cursor if user has already typed (avoids "strange behaviour on first type")
+            if (len > 1) return;
+            try {
+              q.setSelection(0, 0, 'silent');
+            } catch {
+              // Ignore - avoid addRange console warning when doc not ready
             }
-          }
-        }, 50);
-      }, 100);
+          });
+        });
+      } catch {
+        try {
+          q.focus();
+        } catch {
+          // Ignore (e.g. addRange when doc not ready)
+        }
+      }
     };
-    tryFocus();
-  }, [autoFocus]);
+
+    const attempt = (n = 0) => {
+      if (cancelled || n >= maxAttempts) return;
+      const quill = getQuill();
+      if (quill?.root?.isConnected) {
+        const run = () => {
+          if (cancelled || !quill) return;
+          focusEditor(quill);
+        };
+        delay > 0 ? setTimeout(run, delay) : requestAnimationFrame(() => requestAnimationFrame(run));
+      } else {
+        setTimeout(() => attempt(n + 1), retryMs);
+      }
+    };
+    attempt();
+    return () => { cancelled = true; };
+  }, [autoFocus, focusImmediately]);
 
   // Restore cursor position when editor gains focus (but respect user clicks)
   useEffect(() => {
@@ -202,6 +230,8 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     const checkAndRestore = () => {
       if (lastSelectionRef.current && (autoFocus || document.activeElement === quill.root)) {
         setTimeout(() => {
+          // Don't restore if user has been typing recently - would jump cursor before typed text
+          if (isUserTypingRef.current) return;
           try {
             const currentSelection = quill.getSelection();
             if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
@@ -385,7 +415,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         // Reset typing flag after user stops typing
         typingTimeoutRef.current = setTimeout(() => {
           isUserTypingRef.current = false;
-        }, 150);
+        }, 300);
       }, 0);
     };
 

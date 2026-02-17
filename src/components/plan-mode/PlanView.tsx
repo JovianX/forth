@@ -3,7 +3,6 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -11,6 +10,7 @@ import {
   DragOverlay,
   useDroppable,
 } from '@dnd-kit/core';
+import { SmartPointerSensor } from '../../utils/sensors';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -159,7 +159,7 @@ export const PlanView: React.FC = () => {
   const selectedContainer = containers.find((c) => c.id === selectedContainerId);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(SmartPointerSensor, {
       activationConstraint: {
         distance: 5,
       },

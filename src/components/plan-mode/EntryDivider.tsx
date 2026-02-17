@@ -9,6 +9,8 @@ interface EntryDividerProps {
   containerId: string;
   insertAtIndex: number;
   sortedItems: Task[];
+  /** Called when a text block is created, so it can start in edit mode */
+  onTextBlockCreated?: (taskId: string) => void;
 }
 
 export const EntryDivider: React.FC<EntryDividerProps> = ({
@@ -16,6 +18,7 @@ export const EntryDivider: React.FC<EntryDividerProps> = ({
   containerId,
   insertAtIndex,
   sortedItems,
+  onTextBlockCreated,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { addTask, updateTask } = useTaskContext();
@@ -32,6 +35,7 @@ export const EntryDivider: React.FC<EntryDividerProps> = ({
 
     const onCreated = (newTaskId: string) => {
       updateTask(newTaskId, { entryId });
+      if (type === 'text-block') onTextBlockCreated?.(newTaskId);
     };
 
     if (type === 'task') {

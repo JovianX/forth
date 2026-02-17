@@ -1,59 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-/** Compact entry times: single icon, tooltip shows created/edited so it doesn't take layout space */
-const EntryTimesTooltip: React.FC<{
-  createdAt: number;
-  updatedAt?: number;
-  formatExact: (t: number) => string;
-}> = ({ createdAt, updatedAt, formatExact }) => {
-  const [visible, setVisible] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const show = () => {
-    timeoutRef.current = setTimeout(() => setVisible(true), 400);
-  };
-  const hide = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setVisible(false);
-  };
-  useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
-  const hasEdit = updatedAt != null && updatedAt !== createdAt;
-  return (
-    <span
-      className="relative inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-    >
-      <span className="p-1.5 text-gray-400 rounded cursor-default" aria-label="Created and edited times">
-        <Clock size={14} />
-      </span>
-      <span
-        className={`absolute left-0 bottom-full mb-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-800 rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50 transition-opacity duration-150 ${
-          visible ? 'opacity-100' : 'opacity-0'
-        }`}
-        role="tooltip"
-        aria-hidden={!visible}
-      >
-        Created: {formatExact(createdAt)}
-        {hasEdit && (
-          <>
-            <br />
-            Edited: {formatExact(updatedAt!)}
-          </>
-        )}
-        <span className="absolute left-4 top-full -mt-0.5 border-4 border-transparent border-t-gray-800" aria-hidden />
-      </span>
-    </span>
-  );
-};
-
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ListTodo, Type, Clock } from 'lucide-react';
+import { GripVertical, Trash2, ListTodo, Type, MoreHorizontal } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
@@ -97,7 +48,9 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   const [overItemId, setOverItemId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(entry.title);
+  const [menuOpen, setMenuOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const formatEntryTitleDefault = (timestamp: number) =>
     new Date(timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -116,6 +69,23 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
       titleInputRef.current.select();
     }
   }, [isEditingTitle]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [menuOpen]);
 
   const handleTitleSave = () => {
     const trimmed = title.trim();
@@ -214,6 +184,15 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const [newlyCreatedTextBlockId, setNewlyCreatedTextBlockId] = useState<string | null>(null);
+
+  // Clear the "newly created" marker once the block has rendered (so we don't re-trigger edit mode)
+  useEffect(() => {
+    if (!newlyCreatedTextBlockId || !sortedItems.some((t) => t.id === newlyCreatedTextBlockId)) return;
+    const id = setTimeout(() => setNewlyCreatedTextBlockId(null), 200);
+    return () => clearTimeout(id);
+  }, [newlyCreatedTextBlockId, sortedItems]);
+
   const handleAddTask = () => {
     const priorityAtEnd = sortedItems.length > 0 ? Math.min(...sortedItems.map((t) => t.priority)) - 1 : undefined;
     addTask('', containerId, priorityAtEnd, 'task');
@@ -228,97 +207,121 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
 
   const handleAddTextBlock = () => {
     const priorityAtEnd = sortedItems.length > 0 ? Math.min(...sortedItems.map((t) => t.priority)) - 1 : undefined;
-    addTask('', containerId, priorityAtEnd, 'text-block', '');
-    setTimeout(() => {
-      const allTasks = tasks.filter((t) => t.containerId === containerId);
-      const newTask = allTasks.find((t) => !t.entryId && t.type === 'text-block');
-      if (newTask) {
-        updateTask(newTask.id, { entryId: entry.id });
-      }
-    }, 10);
+    addTask('', containerId, priorityAtEnd, 'text-block', '', (newTaskId) => {
+      updateTask(newTaskId, { entryId: entry.id });
+      setNewlyCreatedTextBlockId(newTaskId);
+    });
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`mb-2 bg-white rounded-xl border border-gray-200/80 shadow-sm transition-all ${
+      className={`relative z-10 mb-2 bg-white rounded-xl border border-gray-200/80 shadow-sm transition-all ${
         isOver && activeDragId && activeDragId !== entry.id && !tasks.find((t) => t.id === activeDragId)?.entryId
           ? 'border-blue-300 shadow-md ring-1 ring-blue-200/50'
           : 'hover:border-gray-300/80 hover:shadow'
       }`}
     >
       <div className="p-4">
-        <div className="flex items-center gap-2 mb-3 group rounded-lg transition-colors group-hover:bg-gray-50/50 -m-1 p-1">
+        <div className="relative flex items-center gap-2 mb-3 group rounded-lg transition-colors group-hover:bg-gray-50/50 -m-1 p-1">
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1.5 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity rounded"
+            className="cursor-grab active:cursor-grabbing p-1.5 text-gray-400 hover:text-gray-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded shrink-0"
           >
             <GripVertical size={16} />
           </div>
-          {isEditingTitle ? (
-            <input
-              ref={titleInputRef}
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleTitleSave}
-              onKeyDown={handleTitleKeyDown}
-              className="flex-1 min-w-0 px-2 py-1 text-lg font-semibold tracking-tight border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
+          <div className="flex-1 min-w-0 flex items-center">
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyDown}
+                className="flex-1 min-w-0 px-2 py-1 text-lg font-semibold tracking-tight border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setTitle(displayTitle);
+                  setIsEditingTitle(true);
+                }}
+                className="flex-1 min-w-0 text-left px-2 py-1 text-lg font-semibold tracking-tight text-gray-900 rounded-lg hover:bg-gray-100/80 transition-colors truncate"
+                title={
+                  entry.updatedAt != null && entry.updatedAt !== entry.createdAt
+                    ? `Created: ${formatExactTimestamp(entry.createdAt)} • Edited: ${formatExactTimestamp(entry.updatedAt)}`
+                    : `Created: ${formatExactTimestamp(entry.createdAt)}`
+                }
+              >
+                {displayTitle}
+              </button>
+            )}
+          </div>
+          <div
+            ref={menuRef}
+            className="absolute top-0 right-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"
+          >
             <button
               type="button"
-              onClick={() => {
-                setTitle(displayTitle);
-                setIsEditingTitle(true);
-              }}
-              className="flex-1 min-w-0 text-left px-2 py-1 text-lg font-semibold tracking-tight text-gray-900 rounded-lg hover:bg-gray-100/80 transition-colors"
-              title="Click to edit title"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Entry actions"
+              aria-expanded={menuOpen}
             >
-              {displayTitle}
+              <MoreHorizontal size={18} />
             </button>
-          )}
-          <EntryTimesTooltip
-            createdAt={entry.createdAt}
-            updatedAt={entry.updatedAt}
-            formatExact={formatExactTimestamp}
-          />
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleAddTask}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 bg-white hover:bg-gray-100 rounded-lg border border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow transition-all"
-              title="Add task"
-            >
-              <ListTodo size={14} className="shrink-0 opacity-80" />
-              Add Task
-            </button>
-            <button
-              onClick={handleAddTextBlock}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 bg-white hover:bg-gray-100 rounded-lg border border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow transition-all"
-              title="Add text"
-            >
-              <Type size={14} className="shrink-0 opacity-80" />
-              Add Text
-            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-0.5 py-1 min-w-[140px] bg-white rounded-lg border border-gray-200 shadow-lg">
+                <button
+                  onClick={() => {
+                    handleAddTask();
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <ListTodo size={14} />
+                  Add Task
+                </button>
+                <button
+                  onClick={() => {
+                    handleAddTextBlock();
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Type size={14} />
+                  Add Text
+                </button>
+                <button
+                  onClick={() => {
+                    deleteTask(entry.id);
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
-          <button
-            onClick={() => deleteTask(entry.id)}
-            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
 
         {sortedItems.length === 0 ? (
-          <div className="text-center py-10 px-4 rounded-lg bg-gray-50/30 border border-dashed border-gray-200/80">
+          <div className="relative z-10 text-center py-10 px-4 rounded-lg bg-gray-50/30 border border-dashed border-gray-200/80">
             <p className="text-gray-500 text-sm font-medium mb-3">Start with</p>
             <div className="flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                onClick={handleAddTextBlock}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddTextBlock();
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow transition-all"
               >
                 <Type size={16} className="shrink-0 opacity-80" />
@@ -326,7 +329,10 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               </button>
               <button
                 type="button"
-                onClick={handleAddTask}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddTask();
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow transition-all"
               >
                 <ListTodo size={16} className="shrink-0 opacity-80" />
@@ -355,12 +361,20 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
                           containerId={containerId}
                           insertAtIndex={0}
                           sortedItems={sortedItems}
+                          onTextBlockCreated={setNewlyCreatedTextBlockId}
                         />
                       )}
                       {item.type === 'note' ? (
                         <NoteNode task={item} depth={0} isDragOver={isDragOver} hideSourceWhileDragging compact />
                       ) : item.type === 'text-block' ? (
-                        <TextBlockNode task={item} depth={0} isDragOver={isDragOver} hideSourceWhileDragging compact />
+                        <TextBlockNode
+                          task={item}
+                          depth={0}
+                          isDragOver={isDragOver}
+                          hideSourceWhileDragging
+                          compact
+                          startInEditMode={item.id === newlyCreatedTextBlockId}
+                        />
                       ) : (
                         <TaskNode task={item} depth={0} isDragOver={isDragOver} hideSourceWhileDragging compact />
                       )}
@@ -369,6 +383,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
                         containerId={containerId}
                         insertAtIndex={index + 1}
                         sortedItems={sortedItems}
+                        onTextBlockCreated={setNewlyCreatedTextBlockId}
                       />
                     </React.Fragment>
                   );

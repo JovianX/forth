@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { isEmptyHtml } from '../../utils/textUtils';
 import { useTaskContext } from '../../context/TaskContext';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 
@@ -28,9 +29,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   const containerColor = container?.color || '#3B82F6';
 
   const handleSubmit = () => {
-    // Check if content has actual text (strip HTML tags)
-    const textContent = content.replace(/<[^>]*>/g, '').trim();
-    if (textContent) {
+    if (!isEmptyHtml(content)) {
       addTask('', containerId, priority, 'text-block', content);
       setContent('');
       onCreated?.();
@@ -99,14 +98,9 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
             onChange={setContent}
             onSave={handleSubmit}
             onBlur={() => {
-              // Check if empty and cancel, otherwise submit
-              const textContent = content.replace(/<[^>]*>/g, '').trim();
-              if (!textContent) {
+              if (isEmptyHtml(content)) {
                 setTimeout(() => {
-                  const currentTextContent = content.replace(/<[^>]*>/g, '').trim();
-                  if (!currentTextContent) {
-                    handleCancel();
-                  }
+                  if (isEmptyHtml(content)) handleCancel();
                 }, 200);
               } else {
                 handleSubmit();

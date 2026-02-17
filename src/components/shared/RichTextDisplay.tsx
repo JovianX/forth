@@ -1,4 +1,5 @@
 import React from 'react';
+import { isEmptyHtml } from '../../utils/textUtils';
 
 interface RichTextDisplayProps {
   content: string;
@@ -6,12 +7,7 @@ interface RichTextDisplayProps {
 }
 
 export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, className = '' }) => {
-  // If content is empty or just whitespace/empty tags, show placeholder
-  const isEmpty = !content || 
-    content.trim() === '' || 
-    content.trim() === '<p></p>' || 
-    content.trim() === '<p><br></p>' ||
-    content.replace(/<[^>]*>/g, '').trim() === '';
+  const isEmpty = isEmptyHtml(content);
 
   if (isEmpty) {
     return (
