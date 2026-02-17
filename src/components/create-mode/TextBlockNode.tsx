@@ -105,7 +105,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         blockRef.current = node;
       }}
       style={style}
-      className={`flex items-center gap-2 rounded-md group transition-colors ${
+      className={`flex items-start gap-2 rounded-md group transition-colors ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4 border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''

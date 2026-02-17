@@ -225,24 +225,6 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
         )}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => setIsCreatingTask(true)}
-            className="p-1 rounded transition-colors"
-            style={{
-              color: getContainerColorWithOpacity(container.color, 0.6),
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = containerDarkColor;
-              e.currentTarget.style.backgroundColor = containerHoverColor;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = getContainerColorWithOpacity(container.color, 0.6);
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            aria-label="Add task"
-          >
-            <CheckSquare size={16} />
-          </button>
-          <button
             onClick={() => setIsCreatingTextBlock(true)}
             className="p-1 rounded transition-colors"
             style={{
@@ -259,6 +241,24 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
             aria-label="Add text block"
           >
             <AlignLeft size={16} />
+          </button>
+          <button
+            onClick={() => setIsCreatingTask(true)}
+            className="p-1 rounded transition-colors"
+            style={{
+              color: getContainerColorWithOpacity(container.color, 0.6),
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = containerDarkColor;
+              e.currentTarget.style.backgroundColor = containerHoverColor;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = getContainerColorWithOpacity(container.color, 0.6);
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            aria-label="Add task"
+          >
+            <CheckSquare size={16} />
           </button>
           <button
             onClick={() => setIsCreatingContainer(true)}

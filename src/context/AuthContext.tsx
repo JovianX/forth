@@ -8,8 +8,21 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
+const BYPASS_STORAGE_KEY = 'forth-dev-bypass';
+
+function getDevBypassEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  const noBypassParam = new URLSearchParams(window.location.search).get('noBypass') === '1';
+  if (noBypassParam) return false;
+  const fromInlineScript = (window as unknown as { __FORTH_DEV_BYPASS__?: boolean }).__FORTH_DEV_BYPASS__;
+  if (fromInlineScript) return true;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const hasStoredBypass = localStorage.getItem(BYPASS_STORAGE_KEY) === '1';
+  return import.meta.env.VITE_DEV_AUTH_BYPASS === 'true' || isLocalhost || hasStoredBypass;
+}
+
 /** When set, skip real auth and use a mock user (for testing in Cursor where popup doesn't work) */
-export const DEV_AUTH_BYPASS = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
+export const DEV_AUTH_BYPASS = getDevBypassEnabled();
 export const DEV_BYPASS_UID = 'dev-bypass-user';
 
 function createDevBypassUser(): User {
@@ -46,13 +59,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (DEV_AUTH_BYPASS) {
+      if (typeof window !== 'undefined') localStorage.setItem(BYPASS_STORAGE_KEY, '1');
+      return createDevBypassUser();
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => !DEV_AUTH_BYPASS);
 
   useEffect(() => {
     if (DEV_AUTH_BYPASS) {
-      setUser(createDevBypassUser());
-      setLoading(false);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -75,6 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signOut = async () => {
     if (DEV_AUTH_BYPASS) {
+      localStorage.removeItem(BYPASS_STORAGE_KEY);
       setUser(null);
       return;
     }
@@ -87,7 +105,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signInAsDev = () => {
-    if (DEV_AUTH_BYPASS) setUser(createDevBypassUser());
+    if (DEV_AUTH_BYPASS) {
+      localStorage.setItem(BYPASS_STORAGE_KEY, '1');
+      setUser(createDevBypassUser());
+    }
   };
 
   const value: AuthContextType = {

@@ -56,4 +56,9 @@ export default defineConfig({
   // For project pages: '/repository-name/'
   // For user/organization pages or custom domain: '/'
   base: basePath,
+  server: {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
+  },
 })

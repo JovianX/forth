@@ -60,18 +60,6 @@ export const EntryDivider: React.FC<EntryDividerProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                insertItem('task');
-              }}
-              className="flex items-center gap-1 px-1.5 py-1 text-gray-500 bg-gray-100/80 hover:bg-gray-200/80 hover:text-gray-700 rounded text-xs transition-colors"
-              title="Add task"
-            >
-              <ListTodo size={12} />
-              Task
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
                 insertItem('text-block');
               }}
               className="flex items-center gap-1 px-1.5 py-1 text-gray-500 bg-gray-100/80 hover:bg-gray-200/80 hover:text-gray-700 rounded text-xs transition-colors"
@@ -79,6 +67,18 @@ export const EntryDivider: React.FC<EntryDividerProps> = ({
             >
               <Type size={12} />
               Text
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                insertItem('task');
+              }}
+              className="flex items-center gap-1 px-1.5 py-1 text-gray-500 bg-gray-100/80 hover:bg-gray-200/80 hover:text-gray-700 rounded text-xs transition-colors"
+              title="Add task"
+            >
+              <ListTodo size={12} />
+              Task
             </button>
           </div>
         </>

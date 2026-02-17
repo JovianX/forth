@@ -13,6 +13,15 @@
     <title>Forth</title>
   </head>
   <body>
+    <script>
+      (function(){
+        if(new URLSearchParams(location.search).get('noBypass')==='1')return;
+        var h=location.hostname;
+        var on=h==='localhost'||h==='127.0.0.1'||localStorage.getItem('forth-dev-bypass')==='1';
+        if(on)localStorage.setItem('forth-dev-bypass','1');
+        window.__FORTH_DEV_BYPASS__=on;
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
