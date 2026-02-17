@@ -21,6 +21,7 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [showShortcutHint, setShowShortcutHint] = useState(true);
   const { addTask } = useTaskContext();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -46,12 +47,14 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
     if (isCreating) {
       setTitle('');
       setContent('');
-      // Focus title first, then content after a short delay
+      setShowShortcutHint(true);
+      const t = setTimeout(() => setShowShortcutHint(false), 1200);
       setTimeout(() => {
         if (titleInputRef.current) {
           titleInputRef.current.focus();
         }
       }, 0);
+      return () => clearTimeout(t);
     }
   }, [isCreating]);
 
@@ -61,7 +64,7 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
 
   return (
     <div
-      className="py-2 px-4 rounded-md group border-l-2 border-purple-300 bg-purple-50/30"
+      className="py-2 px-4 rounded-md group border-l-2 border-purple-300 bg-purple-50/30 relative"
       style={{
         marginLeft: `${depth * 24}px`,
       }}
@@ -71,7 +74,7 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
         <div className="w-[20px] flex items-start pt-1">
           <FileText size={18} className="text-purple-500" />
         </div>
-        <div className="flex-1 flex flex-col gap-2">
+        <div className="flex-1 flex flex-col gap-2 relative">
           <input
             ref={titleInputRef}
             type="text"
@@ -124,10 +127,18 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
               }
             }}
           />
+          <div className={`absolute left-0 top-full pt-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-purple-50/95">
+              {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
+            </kbd>
+            <span>+</span>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-purple-50/95">Enter</kbd>
+            <span>to save</span>
+            <span className="mx-1">·</span>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-purple-50/95">Esc</kbd>
+            <span>to cancel</span>
+          </div>
         </div>
-      </div>
-      <div className="mt-2 text-xs text-gray-500 ml-8">
-        Press Ctrl/Cmd+Enter to save, Escape to cancel
       </div>
     </div>
   );

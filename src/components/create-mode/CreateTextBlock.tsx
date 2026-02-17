@@ -20,6 +20,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   priority,
 }) => {
   const [content, setContent] = useState('');
+  const [showShortcutHint, setShowShortcutHint] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
   const { addTask, containers } = useTaskContext();
 
@@ -56,6 +57,15 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
     }
   }, [isCreating]);
 
+  // Fade out shortcut hint after form opens
+  useEffect(() => {
+    if (isCreating) {
+      setShowShortcutHint(true);
+      const t = setTimeout(() => setShowShortcutHint(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [isCreating]);
+
   if (!isCreating) {
     return null;
   }
@@ -63,7 +73,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   return (
     <div
       ref={rootRef}
-      className="flex items-start gap-2 py-1.5 px-4 border-l-2 group bg-gray-50/20 hover:bg-gray-50/40 transition-colors"
+      className="flex items-center gap-2 py-1.5 px-4 border-l-2 group bg-gray-50/20 hover:bg-gray-50/40 transition-colors"
       style={{
         marginLeft: `${depth * 24}px`,
         borderLeftColor: containerColor,
@@ -82,8 +92,8 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
       </div>
       {/* Spacer to align text with task row (same as TextBlockNode) */}
       <div className="w-5 h-5 flex-shrink-0" aria-hidden />
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-col">
+      <div className="flex-1 min-w-0 pt-2.5 -mt-2.5">
+        <div className="flex flex-col relative">
           <WysiwygEditor
             value={content}
             onChange={setContent}
@@ -106,19 +116,15 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
             className="w-full"
             autoFocus={true}
           />
-          <div className="flex items-center gap-1.5 mt-1 px-1 text-xs text-gray-400">
-            <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
+          <div className={`absolute left-0 top-full pt-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
               {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
             </kbd>
             <span>+</span>
-            <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
-              Enter
-            </kbd>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
             <span>to save</span>
-            <span className="mx-1">•</span>
-            <kbd className="px-1.5 py-0.5 rounded text-xs font-mono border border-gray-300 bg-gray-50">
-              Esc
-            </kbd>
+            <span className="mx-1">·</span>
+            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Esc</kbd>
             <span>to cancel</span>
           </div>
         </div>

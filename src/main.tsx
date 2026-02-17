@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { TaskProvider } from './context/TaskContext.tsx'
+import { AuthProvider } from './context/AuthContext.tsx'
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA (skip in dev to avoid HMR/WebSocket interference)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     // Use base URL from Vite config (handles GitHub Pages base path)
     const baseUrl = import.meta.env.BASE_URL;
@@ -24,8 +25,10 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <TaskProvider>
-      <App />
-    </TaskProvider>
+    <AuthProvider>
+      <TaskProvider>
+        <App />
+      </TaskProvider>
+    </AuthProvider>
   </React.StrictMode>,
 )

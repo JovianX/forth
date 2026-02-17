@@ -8,13 +8,14 @@ import {
   getNextPriority,
   priorityForOrderIndex
 } from '../utils/taskUtils';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirebaseStorage } from '../hooks/useFirebaseStorage';
 
 interface TaskContextType {
   mode: Mode;
   containers: Container[];
   tasks: Task[];
   expandedContainers: Set<string>; // Actually stores collapsed containers
+  loading: boolean;
   setMode: (mode: Mode) => void;
   toggleContainerExpanded: (containerId: string) => void;
   isContainerExpanded: (containerId: string) => boolean;
@@ -40,7 +41,7 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useLocalStorage();
+  const [state, setState, loading] = useFirebaseStorage();
   const addTaskNewIdRef = React.useRef<string | null>(null);
   const addTaskOnCreatedRef = React.useRef<((newTaskId: string) => void) | null>(null);
 
@@ -604,6 +605,7 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     containers: state.containers,
     tasks: state.tasks,
     expandedContainers: state.expandedContainers as Set<string>,
+    loading,
     setMode,
     toggleContainerExpanded,
     isContainerExpanded,

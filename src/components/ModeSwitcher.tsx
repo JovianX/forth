@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ClipboardList, ListChecks, User, Palette, Plus } from 'lucide-react';
+import { ClipboardList, ListChecks, User, Palette, Plus, LogOut } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
+import { useAuth } from '../context/AuthContext';
 import { Mode, Container } from '../types';
 import { getPalette } from '../utils/paletteUtils';
 import { FilterMenu } from './execution-mode/FilterMenu';
@@ -1190,6 +1191,7 @@ const getIconSVG = (iconName: string | null) => {
 export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
   filterMenuProps, onColorPaletteClick, onAddContainerClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, signOut } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -1467,7 +1469,9 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
                     }}
                   >
                     <p className="text-sm font-semibold text-gray-900">User Menu</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Coming soon: Login</p>
+                    {user?.email && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{user.email}</p>
+                    )}
                   </div>
                   
                   <button
@@ -1499,14 +1503,23 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
                     }}
                   >
                     <button
-                      disabled
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm cursor-not-allowed opacity-50"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        signOut();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors"
                       style={{
-                        color: `${primaryDark}80`,
+                        color: primaryDark,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = primaryLight;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <User size={18} />
-                      <span>Login (Coming Soon)</span>
+                      <LogOut size={18} style={{ color: primaryColor }} />
+                      <span>Sign out</span>
                     </button>
                   </div>
                 </div>

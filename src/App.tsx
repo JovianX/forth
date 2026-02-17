@@ -4,7 +4,9 @@ import { ContainerTree } from './components/create-mode/ContainerTree';
 import { TaskList } from './components/execution-mode/TaskList';
 import { PlanView } from './components/plan-mode/PlanView';
 import { ColorPalettePreview } from './components/ColorPalettePreview';
+import { Login } from './components/Login';
 import { useTaskContext } from './context/TaskContext';
+import { useAuth } from './context/AuthContext';
 import { getPalette } from './utils/paletteUtils';
 
 const FILTER_STORAGE_KEY = 'forth-filter-state';
@@ -15,7 +17,8 @@ interface FilterState {
 }
 
 function App() {
-  const { mode, containers } = useTaskContext();
+  const { mode, containers, loading: taskLoading } = useTaskContext();
+  const { user, loading: authLoading } = useAuth();
   
   // Load filter state from localStorage
   const loadFilterState = (): FilterState => {
@@ -94,6 +97,20 @@ function App() {
 
   if (showColorPreview) {
     return <ColorPalettePreview onClose={() => setShowColorPreview(false)} />;
+  }
+
+  if (authLoading || taskLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+        <div className="animate-pulse text-gray-500">
+          {authLoading ? 'Loading...' : 'Loading your data...'}
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
   }
 
   const handleAddContainerClick = () => {

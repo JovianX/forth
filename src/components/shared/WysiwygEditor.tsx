@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -7,6 +7,8 @@ interface WysiwygEditorProps {
   onChange: (value: string) => void;
   onBlur?: () => void;
   onSave?: () => void;
+  /** When provided, plain Enter creates new block instead of new paragraph */
+  onEnter?: () => void;
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
@@ -17,53 +19,64 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   onChange,
   onBlur,
   onSave,
+  onEnter,
   placeholder = 'Write text...',
   className = '',
   autoFocus = false,
 }) => {
   const quillRef = useRef<ReactQuill>(null);
+  /** Safe getter - returns null if editor not yet instantiated (avoids "Accessing non-instantiated editor") */
+  const getQuill = (): ReturnType<ReactQuill['getEditor']> | null => {
+    try {
+      return quillRef.current?.getEditor?.() ?? null;
+    } catch {
+      return null;
+    }
+  };
   const lastSelectionRef = useRef<{ index: number; length: number } | null>(null);
   const isUserTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userClickedRef = useRef(false);
   const isPastingRef = useRef(false);
+  const onEnterRef = useRef(onEnter);
+  onEnterRef.current = onEnter;
   // Generate a safe CSS class name (only alphanumeric and hyphens)
   const editorIdRef = useRef(`wysiwyg-${Math.random().toString(36).substring(2, 11).replace(/[^a-z0-9-]/g, '')}`);
 
-  // Function to restore cursor position
+  // Function to restore cursor position (guards against "addRange: range isn't in document")
   const restoreCursorPosition = (quill: any, force = false) => {
     if (!lastSelectionRef.current || (isUserTypingRef.current && !force) || isPastingRef.current) return;
-    
+    if (!quill?.root?.isConnected) return;
+
     const { index, length } = lastSelectionRef.current;
     const textLength = quill.getLength();
-    
-    // Ensure index is within bounds
+    if (textLength <= 0) return;
+
+    // Ensure index is within bounds (Quill doc has at least 1 for newline)
     const safeIndex = Math.min(index, Math.max(0, textLength - 1));
-    const safeLength = Math.min(length, textLength - safeIndex);
-    
-    // Use multiple requestAnimationFrame calls to ensure it sticks
+    const safeLength = Math.min(length, Math.max(0, textLength - safeIndex));
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        if (!quill?.root?.isConnected) return;
         try {
           quill.setSelection(safeIndex, safeLength, 'user');
-          // Verify it was set correctly, if not try again
           setTimeout(() => {
+            if (!quill?.root?.isConnected) return;
             const currentSelection = quill.getSelection();
             if (currentSelection && currentSelection.index === 0 && currentSelection.length === 0 && safeIndex > 0) {
-              // Cursor was reset to beginning, restore again
               try {
                 quill.setSelection(safeIndex, safeLength, 'user');
-              } catch (e) {
-                // Ignore
+              } catch {
+                // Ignore - avoid "addRange" console noise
               }
             }
           }, 50);
-        } catch (e) {
-          // If setSelection fails, try without the 'user' source
+        } catch {
           try {
             quill.setSelection(safeIndex, safeLength);
-          } catch (e2) {
-            // Ignore errors if selection can't be set
+          } catch {
+            // Ignore - selection can't be set (e.g. range not in document)
           }
         }
       });
@@ -71,14 +84,21 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   };
 
   useEffect(() => {
-    if (autoFocus && quillRef.current) {
-      const quill = quillRef.current.getEditor();
-      // Wait for Quill to be ready, then focus and restore cursor
+    if (!autoFocus) return;
+    const tryFocus = (attempt = 0) => {
+      const quill = getQuill();
+      if (!quill || !quill.root?.isConnected) {
+        if (attempt < 10) setTimeout(() => tryFocus(attempt + 1), 50);
+        return;
+      }
       setTimeout(() => {
-        quill.focus();
-        // Check if cursor is at beginning before restoring (only if user didn't click)
+        try {
+          if (quill.root?.isConnected) quill.focus();
+        } catch {
+          // Ignore focus errors (e.g. addRange when doc not ready)
+        }
         setTimeout(() => {
-          if (!userClickedRef.current) {
+          if (!userClickedRef.current && quill.root?.isConnected) {
             const currentSelection = quill.getSelection();
             if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
               restoreCursorPosition(quill);
@@ -86,13 +106,19 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           }
         }, 50);
       }, 100);
-    }
+    };
+    tryFocus();
   }, [autoFocus]);
 
   // Restore cursor position when editor gains focus (but respect user clicks)
   useEffect(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
+    let cleanup: (() => void) | undefined;
+    const trySetup = (attempt = 0) => {
+      const quill = getQuill();
+      if (!quill) {
+        if (attempt < 10) setTimeout(() => trySetup(attempt + 1), 50);
+        return;
+      }
 
     let hasRestoredOnFocus = false;
 
@@ -106,19 +132,19 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
 
     const handleFocus = () => {
-      // Only restore if user didn't just click and cursor is at beginning
       if (!hasRestoredOnFocus && lastSelectionRef.current && !userClickedRef.current) {
         setTimeout(() => {
-          const currentSelection = quill.getSelection();
-          // If cursor is at the beginning (index 0), restore saved position
-          // This handles the case where ReactQuill reset it, but not if user clicked
-          if (currentSelection && currentSelection.index === 0 && currentSelection.length === 0) {
-            restoreCursorPosition(quill);
+          try {
+            const currentSelection = quill.getSelection();
+            if (currentSelection && currentSelection.index === 0 && currentSelection.length === 0) {
+              restoreCursorPosition(quill);
+            }
+          } catch {
+            // Ignore when range isn't in document
           }
           hasRestoredOnFocus = true;
         }, 50);
       } else if (userClickedRef.current) {
-        // User clicked, so respect their click position - don't restore
         hasRestoredOnFocus = true;
       }
     };
@@ -134,46 +160,55 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     editorElement.addEventListener('blur', handleBlurInternal);
     editorElement.addEventListener('mousedown', handleMouseDown);
 
-    return () => {
+    cleanup = () => {
       editorElement.removeEventListener('focus', handleFocus);
       editorElement.removeEventListener('blur', handleBlurInternal);
       editorElement.removeEventListener('mousedown', handleMouseDown);
     };
+    };
+    trySetup();
+    return () => cleanup?.();
   }, []);
 
   // Restore cursor position when value changes externally (not from user typing or clicking)
   useEffect(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
-
-    // Don't restore if user is actively typing, just clicked, or pasting
+    const quill = getQuill();
+    if (!quill || !quill.root?.isConnected) return;
     if (isUserTypingRef.current || userClickedRef.current || isPastingRef.current) return;
 
-    // Only restore if we have a saved selection and editor is focused
     if (lastSelectionRef.current && (document.activeElement === quill.root || quill.hasFocus())) {
-      // Use a longer delay to ensure Quill has processed the value change
       setTimeout(() => {
-        const currentSelection = quill.getSelection();
-        // Only restore if cursor is at beginning (ReactQuill reset it)
-        if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
-          restoreCursorPosition(quill);
+        try {
+          const currentSelection = quill.getSelection();
+          if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
+            restoreCursorPosition(quill);
+          }
+        } catch {
+          // Ignore when range isn't in document
         }
       }, 50);
     }
   }, [value]);
 
   useEffect(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
+    let cleanup: (() => void) | undefined;
+    const trySetup = (attempt = 0) => {
+      const quill = getQuill();
+      if (!quill) {
+        if (attempt < 10) setTimeout(() => trySetup(attempt + 1), 50);
+        return;
+      }
 
-    // Restore cursor when editor is ready (for initial mount with autoFocus)
     const checkAndRestore = () => {
       if (lastSelectionRef.current && (autoFocus || document.activeElement === quill.root)) {
         setTimeout(() => {
-          const currentSelection = quill.getSelection();
-          // If cursor is at beginning, restore saved position
-          if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
-            restoreCursorPosition(quill);
+          try {
+            const currentSelection = quill.getSelection();
+            if (!currentSelection || (currentSelection.index === 0 && currentSelection.length === 0)) {
+              restoreCursorPosition(quill);
+            }
+          } catch {
+            // Ignore when range isn't in document
           }
         }, 100);
       }
@@ -187,7 +222,9 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         onSave?.();
+        return;
       }
+      // Plain Enter is handled by Quill keyboard binding when onEnter is provided
       // Handle paste shortcuts - set flag before paste happens
       // Don't prevent default - let Quill handle paste natively
       if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
@@ -222,16 +259,27 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
 
     const updateToolbarPosition = () => {
+      if (!quill.root?.isConnected) return;
       const toolbar = document.querySelector(`.${editorIdRef.current} .ql-toolbar`) as HTMLElement;
       if (!toolbar) return;
 
-      const selection = quill.getSelection();
+      let selection: { index: number; length: number } | null = null;
+      try {
+        selection = quill.getSelection();
+      } catch {
+        toolbar.classList.remove('show');
+        return;
+      }
       const hasTextSelection = selection && selection.length > 0;
-      
-      if (hasTextSelection) {
+
+      if (hasTextSelection && selection) {
         try {
-          // Get the bounds of the selection (relative to the editor element)
-          const bounds = quill.getBounds(selection.index, selection.length);
+          const docLength = quill.getLength();
+          if (selection.index >= docLength || selection.index < 0) {
+            toolbar.classList.remove('show');
+            return;
+          }
+          const bounds = quill.getBounds(selection.index, Math.min(selection.length, docLength - selection.index));
           if (!bounds) {
             toolbar.classList.remove('show');
             return;
@@ -299,13 +347,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
 
     const handleSelectionChange = () => {
-      // Save cursor position
-      const selection = quill.getSelection();
-      if (selection) {
-        lastSelectionRef.current = {
-          index: selection.index,
-          length: selection.length,
-        };
+      try {
+        const selection = quill.getSelection();
+        if (selection) {
+          lastSelectionRef.current = { index: selection.index, length: selection.length };
+        }
+      } catch {
+        // Ignore when range isn't in document (e.g. during React re-render)
       }
       updateToolbarPosition();
     };
@@ -357,7 +405,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     // Check initial selection state
     handleSelectionChange();
 
-    return () => {
+    cleanup = () => {
       editorElement.removeEventListener('keydown', handleKeyDown);
       editorElement.removeEventListener('paste', handlePaste);
       editorElement.removeEventListener('contextmenu', handleContextMenu);
@@ -371,40 +419,63 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         clearTimeout(readyTimeout);
       }
     };
+    };
+    trySetup();
+    return () => cleanup?.();
   }, [onSave, autoFocus]);
 
-  // Handle blur to save cursor position
   const handleBlur = () => {
-    // Don't trigger onBlur callback if user is pasting - this prevents
-    // edit mode from exiting when pasting content
-    if (isPastingRef.current) {
-      return;
-    }
-    
-    const quill = quillRef.current?.getEditor();
+    if (isPastingRef.current) return;
+
+    const quill = getQuill();
     if (quill) {
-      const selection = quill.getSelection();
-      if (selection) {
-        lastSelectionRef.current = {
-          index: selection.index,
-          length: selection.length,
-        };
+      try {
+        const selection = quill.getSelection();
+        if (selection) {
+          lastSelectionRef.current = { index: selection.index, length: selection.length };
+        }
+      } catch {
+        // Ignore when range isn't in document
       }
     }
     onBlur?.();
   };
 
-  const modules = {
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['clean']
-    ],
-    clipboard: {
-      // Enable clipboard module (default behavior)
-      matchVisual: false,
-    },
-  };
+  const modules = useMemo(() => {
+    const base: Record<string, unknown> = {
+      toolbar: [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['clean']
+      ],
+      clipboard: {
+        matchVisual: false,
+      },
+    };
+    // When onEnter is provided, override Enter to create new block instead of new line.
+    // Config bindings run before Quill's defaults; shiftKey:false = plain Enter only.
+    if (onEnter) {
+      base.keyboard = {
+        bindings: {
+          enterNewBlock: {
+            key: 'Enter',
+            shiftKey: false,
+            metaKey: false,
+            ctrlKey: false,
+            handler: function(this: { quill: { root: HTMLElement } }, _range: { index: number; length: number }) {
+              const cb = onEnterRef.current;
+              if (cb) {
+                cb();
+                return false; // Prevent Quill from inserting newline
+              }
+              return true;
+            },
+          },
+        },
+      };
+    }
+    return base;
+  }, [onEnter]);
 
   const formats = [
     'bold', 'italic', 'underline', 'strike',

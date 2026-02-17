@@ -60,11 +60,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Cache the fresh HTML
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          // Cache the fresh HTML (Cache API only supports GET requests)
+          if (event.request.method === 'GET') {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -79,11 +81,13 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           // Return cached version or fetch from network
           return response || fetch(event.request).then((fetchResponse) => {
-            // Cache the new asset
-            const responseClone = fetchResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            // Cache the new asset (Cache API only supports GET requests)
+            if (event.request.method === 'GET') {
+              const responseClone = fetchResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
             return fetchResponse;
           });
         })
