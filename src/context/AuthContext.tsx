@@ -16,9 +16,18 @@ function getDevBypassEnabled(): boolean {
   if (noBypassParam) return false;
   const fromInlineScript = (window as unknown as { __FORTH_DEV_BYPASS__?: boolean }).__FORTH_DEV_BYPASS__;
   if (fromInlineScript) return true;
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  /** Cursor Simple Browser is Electron-based; auth popups don't work there. Only enable dev bypass in Cursor. */
+  const isCursorBrowser =
+    typeof navigator !== 'undefined' &&
+    (navigator.userAgent.toLowerCase().includes('electron') ||
+      navigator.userAgent.toLowerCase().includes('cursor'));
+  if (!isCursorBrowser) return false;
+  const isLocalhost =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const hasStoredBypass = localStorage.getItem(BYPASS_STORAGE_KEY) === '1';
-  return import.meta.env.VITE_DEV_AUTH_BYPASS === 'true' || isLocalhost || hasStoredBypass;
+  return (
+    import.meta.env.VITE_DEV_AUTH_BYPASS === 'true' || isLocalhost || hasStoredBypass
+  );
 }
 
 /** When set, skip real auth and use a mock user (for testing in Cursor where popup doesn't work) */
