@@ -125,7 +125,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             )}
           </div>
           {isTextBlock && task.content && (
-            <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+            <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap break-words">
               {task.content}
             </div>
           )}
@@ -144,12 +144,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                           </svg>
                         )}
                       </div>
-                      <span className={block.completed ? 'line-through text-gray-500' : ''}>
+                      <span className={`min-w-0 flex-1 break-words ${block.completed ? 'line-through text-gray-500' : ''}`}>
                         {block.taskTitle || 'Untitled task'}
                       </span>
                     </>
                   ) : (
-                    <div className="whitespace-pre-wrap text-gray-600">
+                    <div className="whitespace-pre-wrap break-words text-gray-600 min-w-0 flex-1">
                       {block.content || <span className="text-gray-400 italic">Empty text block</span>}
                     </div>
                   )}

@@ -118,7 +118,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           />
         ) : (
           <span
-            className={`flex-1 cursor-text px-1 py-0.5 ${
+            className={`flex-1 min-w-0 cursor-text px-1 py-0.5 break-words ${
               block.completed
                 ? 'line-through text-gray-500'
                 : 'text-gray-900'

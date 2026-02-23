@@ -163,7 +163,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       ) : (
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span
-            className={`inline-block cursor-text px-1 py-0.5 truncate ${
+            className={`block cursor-text px-1 py-0.5 break-words ${
               task.completed
                 ? 'line-through text-gray-500'
                 : task.title.trim() ? 'text-gray-900' : 'text-gray-400 italic'

@@ -542,14 +542,20 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           border: none;
           font-size: inherit;
           font-family: inherit;
+          width: 100%;
+          min-width: 0;
         }
         .${editorIdRef.current} .ql-editor {
           padding: 0.25rem 0.25rem;
           min-height: 1.5rem;
           color: #374151 !important;
-          line-height: inherit;
+          line-height: 1.42;
           font-size: inherit;
           font-weight: inherit;
+          white-space: pre-wrap;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: normal;
         }
         .${editorIdRef.current} .ql-editor * {
           color: inherit;
@@ -592,8 +598,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor h3 {
           font-size: 1.1em;
         }
-        /* Match display mode list styling exactly */
-        /* Reduced indentation for better visual balance */
+        /* Match display mode list styling exactly - must be identical for seamless edit/read switching */
         .${editorIdRef.current} .ql-editor ul,
         .${editorIdRef.current} .ql-editor ol {
           margin: 0.5em 0;
@@ -606,37 +611,22 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           list-style: none;
           position: relative;
         }
-        /* Bullet lists - match display mode exactly */
-        .${editorIdRef.current} .ql-editor ul li::before {
+        /* Both ul and ol render as bullets; center bullet vertically with first line */
+        .${editorIdRef.current} .ql-editor ul li::before,
+        .${editorIdRef.current} .ql-editor ol li::before {
           content: "\\2022" !important;
-          display: inline-block !important;
-          margin-left: -1.5em !important;
-          margin-right: 0.3em !important;
-          text-align: right !important;
-          white-space: nowrap !important;
-          width: 1.2em !important;
+          position: absolute !important;
+          left: 0 !important;
           color: #374151 !important;
           font-size: 1.4em !important;
           font-weight: bold !important;
           line-height: 1 !important;
-          vertical-align: baseline !important;
-          transform: translateY(0.1em) !important;
+          top: 0 !important;
         }
-        /* Override Quill's default bullet styling to match display mode */
-        .${editorIdRef.current} .ql-editor li[data-list=bullet] > .ql-ui::before {
-          content: "\\2022" !important;
-          font-size: 1.4em !important;
-          font-weight: bold !important;
-          line-height: 1 !important;
-          vertical-align: baseline !important;
-          transform: translateY(0.1em) !important;
-          color: #374151 !important;
-          display: inline-block !important;
-          margin-left: -1.5em !important;
-          margin-right: 0.3em !important;
-          text-align: right !important;
-          white-space: nowrap !important;
-          width: 1.2em !important;
+        /* Hide Quill's .ql-ui - we use li::before for consistent edit/read appearance */
+        .${editorIdRef.current} .ql-editor li[data-list=bullet] > .ql-ui::before,
+        .${editorIdRef.current} .ql-editor li[data-list=ordered] > .ql-ui::before {
+          content: none !important;
         }
         .${editorIdRef.current} .ql-editor strong {
           font-weight: 600;

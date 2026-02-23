@@ -149,7 +149,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
             }}
             tabIndex={-1}
           >
-            <div className="relative">
+            <div className="relative py-0.5 px-1 min-w-0">
               <WysiwygEditor
                 value={content}
                 onChange={setContent}
@@ -174,12 +174,16 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
             </div>
           </div>
         ) : (
-          <div
-            className="cursor-text wysiwyg-content py-0.5 px-1"
-            title="Click to edit"
-            dangerouslySetInnerHTML={{ __html: hasContent ? content : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
-            onClick={() => setIsEditing(true)}
-          />
+          <div className="flex flex-col">
+            <div className="relative py-0.5 px-1 min-w-0">
+              <div
+                className="cursor-text wysiwyg-content min-w-0 w-full"
+                title="Click to edit"
+                dangerouslySetInnerHTML={{ __html: hasContent ? content : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
+                onClick={() => setIsEditing(true)}
+              />
+            </div>
+          </div>
         )}
       </div>
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">

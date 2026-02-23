@@ -21,9 +21,15 @@ body {
   color: #374151;
   padding: 0.25rem 0.25rem;
   min-height: 1.5rem;
-  line-height: inherit;
   font-size: inherit;
   font-weight: inherit;
+  /* Match Quill .ql-editor exactly - same line-height and wrapping for identical edit/view appearance */
+  line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: normal;
+  max-width: 100%;
 }
 
 .wysiwyg-content p {
@@ -60,7 +66,11 @@ body {
 }
 
 /* Match Quill's exact list styling using pseudo-elements */
-/* Reduced indentation for better visual balance */
+/* Hide Quill's .ql-ui in display mode - we use our own bullets; Quill's UI can add unwanted gap */
+.wysiwyg-content .ql-ui {
+  display: none !important;
+}
+
 .wysiwyg-content ul, .wysiwyg-content ol {
   margin: 0.5em 0;
   padding-left: 0;
@@ -74,42 +84,21 @@ body {
   position: relative;
 }
 
-/* Bullet lists - match Quill's exact styling with larger, more visible bullets */
-.wysiwyg-content ul li::before {
+/* Bullet lists - use absolute positioning; center bullet vertically with first line of text */
+.wysiwyg-content ul li::before,
+.wysiwyg-content ol li::before {
   content: "\2022";
-  display: inline-block;
-  margin-left: -1.5em;
-  margin-right: 0.3em;
-  text-align: right;
-  white-space: nowrap;
-  width: 1.2em;
+  position: absolute;
+  left: 0;
   color: #374151;
   font-size: 1.4em;
   font-weight: bold;
   line-height: 1;
-  vertical-align: baseline;
-  transform: translateY(0.1em);
+  /* Center bullet with first line: top 0 positions bullet (1.4em tall) so its center ~0.7em aligns with line center ~0.71em */
+  top: 0;
 }
 
-/* Numbered lists - match Quill's exact styling with counter */
-.wysiwyg-content ol {
-  counter-reset: list-0;
-}
-
-.wysiwyg-content ol li {
-  counter-increment: list-0;
-}
-
-.wysiwyg-content ol li::before {
-  content: counter(list-0, decimal) ". ";
-  display: inline-block;
-  margin-left: -1.5em;
-  margin-right: 0.3em;
-  text-align: right;
-  white-space: nowrap;
-  width: 1.2em;
-  color: #374151;
-}
+/* Both ul and ol render as bullets for consistent list appearance */
 
 .wysiwyg-content a {
   color: #3b82f6 !important;
