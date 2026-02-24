@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
-import { isEmptyHtml } from '../../utils/textUtils';
+import { isEmptyHtml, stripInvisibleWordBreaks } from '../../utils/textUtils';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 
 interface TextBlockNodeProps {
@@ -179,7 +179,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
               <div
                 className="cursor-text wysiwyg-content min-w-0 w-full"
                 title="Click to edit"
-                dangerouslySetInnerHTML={{ __html: hasContent ? content : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
+                dangerouslySetInnerHTML={{ __html: hasContent ? stripInvisibleWordBreaks(content) : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
                 onClick={() => setIsEditing(true)}
               />
             </div>

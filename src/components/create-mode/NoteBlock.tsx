@@ -5,6 +5,7 @@ import { GripVertical, Trash2 } from 'lucide-react';
 import { NoteBlock } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
+import { stripInvisibleWordBreaks } from '../../utils/textUtils';
 
 interface NoteBlockProps {
   block: NoteBlock;
@@ -176,7 +177,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             className="flex-1 cursor-text wysiwyg-content"
             onClick={() => setIsEditing(true)}
             title="Click to edit"
-            dangerouslySetInnerHTML={{ __html: hasTextContent ? text : '<span class="text-gray-400 italic">Empty text block</span>' }}
+            dangerouslySetInnerHTML={{ __html: hasTextContent ? stripInvisibleWordBreaks(text) : '<span class="text-gray-400 italic">Empty text block</span>' }}
           />
           <button
             onClick={(e) => {
