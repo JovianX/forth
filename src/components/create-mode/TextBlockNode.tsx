@@ -24,7 +24,12 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   const [isEditing, setIsEditing] = useState(() => startInEditMode || isEmptyHtml(task.content));
   const [content, setContent] = useState(task.content || '');
   const [showShortcutHint, setShowShortcutHint] = useState(true);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
 
   useEffect(() => {
     if (startInEditMode && isEditing && blockRef.current) {
@@ -160,17 +165,16 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
                 autoFocus={true}
                 focusImmediately={startInEditMode || isEmptyHtml(content)}
               />
-              <div className={`absolute left-0 top-full pt-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+              {!isTouchDevice && (
+              <div className={`absolute right-1 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
                 <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
                   {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
                 </kbd>
                 <span>+</span>
                 <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
                 <span>to save</span>
-                <span className="mx-1">·</span>
-                <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Esc</kbd>
-                <span>to cancel</span>
               </div>
+              )}
             </div>
           </div>
         ) : (
@@ -186,7 +190,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto pt-1.5 -mt-1.5">
         {!task.entryId && (
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span>Created: {formatTimestamp(task.createdAt)}</span>

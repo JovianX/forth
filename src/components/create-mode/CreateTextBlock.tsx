@@ -22,7 +22,12 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
 }) => {
   const [content, setContent] = useState('');
   const [showShortcutHint, setShowShortcutHint] = useState(true);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
   const { addTask, containers } = useTaskContext();
 
   const container = containers.find((c) => c.id === containerId);
@@ -110,17 +115,16 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
             className="w-full"
             autoFocus={true}
           />
-          <div className={`absolute left-0 top-full pt-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+          {!isTouchDevice && (
+          <div className={`absolute right-1 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
             <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
               {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
             </kbd>
             <span>+</span>
             <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
             <span>to save</span>
-            <span className="mx-1">·</span>
-            <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Esc</kbd>
-            <span>to cancel</span>
           </div>
+          )}
         </div>
       </div>
     </div>
