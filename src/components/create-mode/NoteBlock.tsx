@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { NoteBlock } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
+import { LinkifyText } from '../shared/LinkifyText';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 import { stripInvisibleWordBreaks } from '../../utils/textUtils';
 
@@ -127,7 +128,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             onClick={() => setIsEditing(true)}
             title="Click to edit"
           >
-            {block.taskTitle || 'Untitled task'}
+            <LinkifyText text={block.taskTitle || 'Untitled task'} />
           </span>
         )}
         <button

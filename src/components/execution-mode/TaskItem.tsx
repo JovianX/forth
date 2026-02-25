@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, FileText, Zap } from 'lucide-react';
 import { Task, Container } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
+import { LinkifyText } from '../shared/LinkifyText';
 import { getContainerPath } from '../../utils/taskUtils';
 import {
   getContainerLightColor,
@@ -107,7 +108,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   }
                 `}
               >
-                {task.title}
+                <LinkifyText text={task.title ?? ''} />
               </div>
             )}
             {!isNote && !isTextBlock && task.isQuickTask && (
@@ -126,7 +127,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           </div>
           {isTextBlock && task.content && (
             <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap break-words">
-              {task.content}
+              <LinkifyText text={task.content} className="whitespace-pre-wrap break-words" />
             </div>
           )}
           {isNote && task.blocks && task.blocks.length > 0 && (
@@ -145,12 +146,16 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                         )}
                       </div>
                       <span className={`min-w-0 flex-1 break-words ${block.completed ? 'line-through text-gray-500' : ''}`}>
-                        {block.taskTitle || 'Untitled task'}
+                        <LinkifyText text={block.taskTitle || 'Untitled task'} />
                       </span>
                     </>
                   ) : (
                     <div className="whitespace-pre-wrap break-words text-gray-600 min-w-0 flex-1">
-                      {block.content || <span className="text-gray-400 italic">Empty text block</span>}
+                      {block.content ? (
+                        <LinkifyText text={block.content} className="whitespace-pre-wrap break-words" />
+                      ) : (
+                        <span className="text-gray-400 italic">Empty text block</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -159,7 +164,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           )}
           {isNote && (!task.blocks || task.blocks.length === 0) && task.content && (
             <div className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
-              {task.content}
+              <LinkifyText text={task.content} className="whitespace-pre-wrap" />
             </div>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">

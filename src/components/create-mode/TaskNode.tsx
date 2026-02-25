@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Zap } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
+import { LinkifyText } from '../shared/LinkifyText';
 import { useTaskContext } from '../../context/TaskContext';
 import { getPriorityAfter } from '../../utils/taskUtils';
 
@@ -23,7 +24,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
   const { tasks, toggleTaskCompletion, deleteTask, updateTask, addTask } = useTaskContext();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const hasAutoFocusedRef = useRef(false);
 
   useEffect(() => {
@@ -59,6 +60,14 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       inputRef.current.setSelectionRange(length, length);
     }
   }, [isEditing]);
+
+  // Auto-resize textarea to fit wrapped content
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el || !isEditing) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(el.scrollHeight, 24)}px`;
+  }, [isEditing, title]);
 
   useEffect(() => {
     setTitle(task.title);
@@ -145,20 +154,21 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
         />
       </div>
       {isEditing ? (
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
           placeholder="What needs to be done?"
-          className={`flex-1 px-1 py-0.5 bg-transparent border-none outline-none focus:outline-none placeholder:text-gray-400 ${
+          rows={1}
+          className={`flex-1 min-w-0 w-full px-1 py-0.5 bg-transparent border-none outline-none focus:outline-none placeholder:text-gray-400 resize-none overflow-hidden break-words ${
             task.completed
               ? 'line-through text-gray-500'
               : 'text-gray-900'
           }`}
           onClick={(e) => e.stopPropagation()}
+          style={{ minHeight: 24 }}
         />
       ) : (
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -171,7 +181,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
             onClick={() => setIsEditing(true)}
             title="Click to edit"
           >
-            {task.title.trim() || 'Add task…'}
+            <LinkifyText text={task.title.trim() || 'Add task…'} />
           </span>
           <button
             onClick={(e) => {
