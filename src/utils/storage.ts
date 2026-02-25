@@ -61,7 +61,15 @@ export function migrateState(state: AppState): AppState {
 
   const expandedContainers = state.expandedContainers || [];
 
-  return { mode: state.mode, containers, tasks, expandedContainers };
+  // Migrate legacy mode names to Capture / Prioritize (persisted state may have 'plan' | 'execution')
+  const rawMode = (state as { mode?: string }).mode ?? 'create';
+  const mode: AppState['mode'] =
+    rawMode === 'plan' ? 'capture'
+    : rawMode === 'execution' ? 'prioritize'
+    : rawMode === 'capture' || rawMode === 'prioritize' ? rawMode
+    : 'create';
+
+  return { mode, containers, tasks, expandedContainers };
 }
 
 export const loadState = (): AppState | null => {

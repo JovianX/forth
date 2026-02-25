@@ -1264,13 +1264,13 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
 
   const modes: { value: Mode; label: string; icon: React.ReactNode }[] = [
     {
-      value: 'plan',
-      label: 'Plan',
+      value: 'capture',
+      label: 'Capture',
       icon: <ClipboardList size={20} strokeWidth={2} />,
     },
     {
-      value: 'execution',
-      label: 'Execute',
+      value: 'prioritize',
+      label: 'Prioritize',
       icon: <ListChecks size={20} strokeWidth={2} />,
     },
   ];
@@ -1351,7 +1351,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Filter Menu - only show in Execute mode */}
+            {/* Filter Menu - only show in Prioritize mode */}
             {filterMenuProps && (
               <FilterMenu {...filterMenuProps} />
             )}

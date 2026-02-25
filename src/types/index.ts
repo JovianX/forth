@@ -11,7 +11,7 @@ export interface Task {
   id: string;
   title: string;
   completed: boolean;
-  priority: number; // Used in execution mode
+  priority: number; // Used in prioritize mode
   containerId: string;
   createdAt: number;
   updatedAt?: number; // Timestamp of last update
@@ -19,7 +19,7 @@ export interface Task {
   content?: string; // For notes and text-blocks - deprecated for notes, use blocks instead
   blocks?: NoteBlock[]; // For notes - array of text and task blocks
   isQuickTask?: boolean; // 2-minute quick task indicator
-  entryId?: string; // For plan mode - groups tasks/text blocks into entries
+  entryId?: string; // For capture mode - groups tasks/text blocks into entries
   entryOrder?: number; // Order within entry (for items) or order of entry itself
 }
 
@@ -28,15 +28,15 @@ export interface Container {
   name: string;
   parentId: string | null; // null for root containers
   color: string; // Color hex code for the container
-  order: number; // Order for display in execution mode filter
+  order: number; // Order for display in prioritize mode filter
   createdAt: number;
 }
 
 export interface AppState {
-  mode: 'create' | 'execution' | 'plan';
+  mode: 'create' | 'prioritize' | 'capture';
   containers: Container[];
   tasks: Task[];
   expandedContainers: Set<string> | string[]; // Store as array for JSON serialization
 }
 
-export type Mode = 'create' | 'execution' | 'plan';
+export type Mode = 'create' | 'prioritize' | 'capture';

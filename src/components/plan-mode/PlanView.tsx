@@ -48,11 +48,11 @@ export const PlanView: React.FC = () => {
 
   // Sidebar state - load from localStorage
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    const saved = localStorage.getItem('planSidebarCollapsed');
+    const saved = localStorage.getItem('captureSidebarCollapsed');
     return saved === 'true';
   });
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem('planSidebarWidth');
+    const saved = localStorage.getItem('captureSidebarWidth');
     if (saved) {
       const n = parseInt(saved, 10);
       if (!Number.isNaN(n) && n >= SIDEBAR_MIN && n <= SIDEBAR_MAX) return n;
@@ -65,10 +65,10 @@ export const PlanView: React.FC = () => {
   
   // Save sidebar state to localStorage
   useEffect(() => {
-    localStorage.setItem('planSidebarCollapsed', String(sidebarCollapsed));
+    localStorage.setItem('captureSidebarCollapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
   useEffect(() => {
-    localStorage.setItem('planSidebarWidth', String(sidebarWidth));
+    localStorage.setItem('captureSidebarWidth', String(sidebarWidth));
   }, [sidebarWidth]);
 
   // Draggable divider: global mouse listeners for resize
@@ -867,7 +867,7 @@ export const PlanView: React.FC = () => {
                       No entries yet
                     </h3>
                     <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                      Add your first entry to start planning. You can add tasks and text, and reorder anytime.
+                      Add your first entry to start capturing. You can add tasks and text, and reorder anytime.
                     </p>
                     <button
                       onClick={() => handleCreateEntry()}

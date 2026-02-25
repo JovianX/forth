@@ -40,7 +40,7 @@ function App() {
     };
   };
 
-  // Filter state for execute mode
+  // Filter state for prioritize mode
   const [selectedContainers, setSelectedContainers] = useState<Set<string> | null>(() => {
     const saved = loadFilterState();
     return saved.selectedContainers ? new Set(saved.selectedContainers) : null;
@@ -154,7 +154,7 @@ function App() {
         onColorPaletteClick={() => setShowColorPreview(true)}
         onAddContainerClick={mode === 'create' ? handleAddContainerClick : undefined}
         filterMenuProps={
-          mode === 'execution'
+          mode === 'prioritize'
             ? {
                 containers,
                 selectedContainers,
@@ -172,7 +172,7 @@ function App() {
             <div className="h-full overflow-y-auto">
               <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} />
             </div>
-          ) : mode === 'execution' ? (
+          ) : mode === 'prioritize' ? (
             <div className="h-full overflow-y-auto">
               <TaskList
                 selectedContainers={selectedContainers}
