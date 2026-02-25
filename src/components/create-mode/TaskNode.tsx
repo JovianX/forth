@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Zap } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { LinkifyText } from '../shared/LinkifyText';
@@ -188,22 +188,6 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
           >
             <LinkifyText text={task.title.trim() || 'Add task…'} />
           </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              updateTask(task.id, { isQuickTask: !task.isQuickTask });
-            }}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-all ${
-              task.isQuickTask
-                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 opacity-0 group-hover:opacity-100'
-            }`}
-            title={task.isQuickTask ? 'Unmark as quick task' : 'Mark as quick task (2 min)'}
-            aria-label={task.isQuickTask ? 'Unmark as quick task' : 'Mark as quick task'}
-          >
-            <Zap size={12} fill={task.isQuickTask ? 'currentColor' : 'none'} />
-            <span>2 min</span>
-          </button>
         </div>
       )}
       <button
