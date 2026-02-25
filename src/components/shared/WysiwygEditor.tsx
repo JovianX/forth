@@ -9,6 +9,8 @@ interface WysiwygEditorProps {
   onSave?: () => void;
   /** When provided, plain Enter creates new block instead of new paragraph */
   onEnter?: () => void;
+  /** When provided, Backspace in an empty editor calls this (e.g. to delete the block) */
+  onBackspaceWhenEmpty?: () => void;
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
@@ -22,6 +24,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   onBlur,
   onSave,
   onEnter,
+  onBackspaceWhenEmpty,
   placeholder = 'Write text...',
   className = '',
   autoFocus = false,
@@ -254,6 +257,16 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         onSave?.();
         return;
       }
+      // Backspace in empty editor: let parent handle (e.g. delete block)
+      if (e.key === 'Backspace' && onBackspaceWhenEmpty) {
+        const len = quill.getLength();
+        if (len <= 1) {
+          e.preventDefault();
+          e.stopPropagation();
+          onBackspaceWhenEmpty();
+          return;
+        }
+      }
       // Plain Enter is handled by Quill keyboard binding when onEnter is provided
       // Handle paste shortcuts - set flag before paste happens
       // Don't prevent default - let Quill handle paste natively
@@ -452,7 +465,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
     trySetup();
     return () => cleanup?.();
-  }, [onSave, autoFocus]);
+  }, [onSave, onBackspaceWhenEmpty, autoFocus]);
 
   const handleBlur = () => {
     if (isPastingRef.current) return;

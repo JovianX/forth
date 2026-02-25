@@ -139,7 +139,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
       }`}
       onClick={handleNoteClick}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 relative pr-8">
         <div
           {...attributes}
           {...listeners}
@@ -259,7 +259,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
             e.stopPropagation();
             deleteTask(task.id);
           }}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 ml-auto"
+          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           aria-label="Delete note"
         >
           <Trash2 size={16} />

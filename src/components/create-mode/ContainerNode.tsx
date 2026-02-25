@@ -129,7 +129,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           borderLeftWidth: isDraggingOverContainer ? '6px' : '4px',
           backgroundColor: isDraggingOverContainer ? containerLightColor : 'transparent',
         }}
-        className={`flex items-center gap-2 py-1.5 px-4 rounded-md group border-l-4 transition-all cursor-pointer ${
+        className={`flex items-center gap-2 py-1.5 px-4 rounded-md group border-l-4 transition-all cursor-pointer relative pr-8 ${
           isDraggingOverContainer ? 'shadow-lg scale-[1.02]' : ''
         }`}
         onClick={(e) => {
@@ -281,7 +281,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
         </div>
         <button
           onClick={() => deleteContainer(container.id)}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ml-auto"
+          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           aria-label="Delete container"
         >
           <Trash2 size={16} />

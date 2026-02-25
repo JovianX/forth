@@ -89,7 +89,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex items-center gap-2 py-1 group/block"
+        className="flex items-center gap-2 py-1 group/block relative pr-8"
       >
         <div
           {...attributes}
@@ -136,7 +136,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             e.stopPropagation();
             onDelete(block.id);
           }}
-          className="opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           aria-label="Delete block"
         >
           <Trash2 size={14} />
@@ -165,7 +165,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           autoFocus={true}
         />
       ) : (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 relative pr-8">
           <div
             {...attributes}
             {...listeners}
@@ -185,7 +185,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
               e.stopPropagation();
               onDelete(block.id);
             }}
-            className="opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
             aria-label="Delete block"
           >
             <Trash2 size={14} />

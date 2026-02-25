@@ -94,6 +94,11 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !title.trim()) {
+      e.preventDefault();
+      deleteTask(task.id);
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!title.trim() && isNewTask) {
@@ -133,7 +138,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-md group ${
+      className={`flex items-center gap-2 rounded-md group relative pr-8 ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
@@ -203,7 +208,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ml-auto"
+        className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
         aria-label="Delete task"
       >
         <Trash2 size={16} />

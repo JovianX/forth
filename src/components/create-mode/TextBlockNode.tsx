@@ -23,7 +23,9 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   const { deleteTask, updateTask } = useTaskContext();
   const [isEditing, setIsEditing] = useState(() => startInEditMode || isEmptyHtml(task.content));
   const [content, setContent] = useState(task.content || '');
-  const [showShortcutHint, setShowShortcutHint] = useState(true);
+  const [showShortcutHint, setShowShortcutHint] = useState(
+    () => (startInEditMode || (Date.now() - task.createdAt < 3000)) && (startInEditMode || isEmptyHtml(task.content))
+  );
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
 
@@ -61,14 +63,18 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     setContent(task.content || '');
   }, [task.content]);
 
-  // Fade out shortcut hint after entering edit mode
+  const isNewlyCreated = startInEditMode || (Date.now() - task.createdAt < 3000);
+
+  // Fade out shortcut hint after entering edit mode (only for newly created blocks)
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && isNewlyCreated) {
       setShowShortcutHint(true);
       const t = setTimeout(() => setShowShortcutHint(false), 2500);
       return () => clearTimeout(t);
+    } else if (!isNewlyCreated) {
+      setShowShortcutHint(false);
     }
-  }, [isEditing]);
+  }, [isEditing, isNewlyCreated]);
 
   const handleSave = () => {
     if (content !== (task.content || '')) {
@@ -110,7 +116,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         blockRef.current = node;
       }}
       style={style}
-      className={`flex items-start gap-2 rounded-md group transition-colors ${
+      className={`flex items-start gap-2 rounded-md group transition-colors relative ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4 border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
@@ -160,13 +166,14 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
                 onChange={setContent}
                 onBlur={handleSave}
                 onSave={handleSave}
+                onBackspaceWhenEmpty={() => deleteTask(task.id)}
                 placeholder="Write text..."
                 className="w-full"
                 autoFocus={true}
                 focusImmediately={startInEditMode || isEmptyHtml(content)}
               />
-              {!isTouchDevice && (
-              <div className={`absolute right-1 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+              {!isTouchDevice && isNewlyCreated && (
+              <div className={`absolute right-9 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
                 <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
                   {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
                 </kbd>
@@ -190,29 +197,27 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto pt-1.5 -mt-1.5">
-        {!task.entryId && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span>Created: {formatTimestamp(task.createdAt)}</span>
-            {task.updatedAt && task.updatedAt !== task.createdAt && (
-              <span>•</span>
-            )}
-            {task.updatedAt && task.updatedAt !== task.createdAt && (
-              <span>Edited: {formatTimestamp(task.updatedAt)}</span>
-            )}
-          </div>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            deleteTask(task.id);
-          }}
-          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
-          aria-label="Delete text block"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
+      {!task.entryId && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto pt-1.5 -mt-1.5">
+          <span>Created: {formatTimestamp(task.createdAt)}</span>
+          {task.updatedAt && task.updatedAt !== task.createdAt && (
+            <span>•</span>
+          )}
+          {task.updatedAt && task.updatedAt !== task.createdAt && (
+            <span>Edited: {formatTimestamp(task.updatedAt)}</span>
+          )}
+        </div>
+      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteTask(task.id);
+        }}
+        className="absolute right-0 top-3 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        aria-label="Delete text block"
+      >
+        <Trash2 size={16} />
+      </button>
     </div>
   );
 };
