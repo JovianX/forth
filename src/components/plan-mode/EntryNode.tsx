@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ListTodo, Type, MoreHorizontal } from 'lucide-react';
+import { GripVertical, Trash2, ListTodo, Type } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
@@ -50,9 +50,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   const [overItemId, setOverItemId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(entry.title);
-  const [menuOpen, setMenuOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const autoCreatedTextForEntryRef = useRef<string | null>(null);
 
   const formatEntryTitleDefault = (timestamp: number) =>
@@ -73,22 +71,11 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
     }
   }, [isEditingTitle]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [menuOpen]);
+  const handleDeleteEntry = () => {
+    if (window.confirm('Delete this entry? This will remove the entry and all its tasks and text.')) {
+      deleteTask(entry.id);
+    }
+  };
 
   // When entry is just created and empty, create a text block by default and focus it
   useEffect(() => {
@@ -277,54 +264,15 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               </button>
             )}
           </div>
-          <div
-            ref={menuRef}
-            className="absolute top-0 right-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"
+          <button
+            type="button"
+            onClick={handleDeleteEntry}
+            className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            title="Delete entry"
+            aria-label="Delete entry"
           >
-            <button
-              type="button"
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Entry actions"
-              aria-expanded={menuOpen}
-            >
-              <MoreHorizontal size={18} />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-0.5 py-1 min-w-[140px] bg-white rounded-lg border border-gray-200 shadow-lg">
-                <button
-                  onClick={() => {
-                    handleAddTask();
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <ListTodo size={14} />
-                  Add Task
-                </button>
-                <button
-                  onClick={() => {
-                    handleAddTextBlock();
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Type size={14} />
-                  Add Text
-                </button>
-                <button
-                  onClick={() => {
-                    deleteTask(entry.id);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
+            <Trash2 size={18} />
+          </button>
         </div>
 
         {sortedItems.length === 0 ? (
