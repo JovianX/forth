@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ListTodo, Type } from 'lucide-react';
+import { GripVertical, Trash2, ListTodo, Type, Sparkles } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
@@ -50,6 +50,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   const [overItemId, setOverItemId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(entry.title);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const autoCreatedTextForEntryRef = useRef<string | null>(null);
 
@@ -71,11 +72,21 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
     }
   }, [isEditingTitle]);
 
-  const handleDeleteEntry = () => {
-    if (window.confirm('Delete this entry? This will remove the entry and all its tasks and text.')) {
-      deleteTask(entry.id);
-    }
+  const handleDeleteEntry = () => setDeleteConfirmOpen(true);
+
+  const handleDeleteConfirm = () => {
+    deleteTask(entry.id);
+    setDeleteConfirmOpen(false);
   };
+
+  useEffect(() => {
+    if (!deleteConfirmOpen) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDeleteConfirmOpen(false);
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [deleteConfirmOpen]);
 
   // When entry is just created and empty, create a text block by default and focus it
   useEffect(() => {
@@ -214,7 +225,13 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
     });
   };
 
+  const handleAiAction = () => {
+    // TODO: Wire to Ollama or other AI (e.g. summarize entry, suggest tasks)
+    window.alert('AI for this entry — connect to your Ollama/API when ready.');
+  };
+
   return (
+    <>
     <div
       ref={setNodeRef}
       style={style}
@@ -264,6 +281,15 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={handleAiAction}
+            className="absolute top-0 right-9 p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            title="AI"
+            aria-label="AI"
+          >
+            <Sparkles size={18} />
+          </button>
           <button
             type="button"
             onClick={handleDeleteEntry}
@@ -374,5 +400,49 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
       </div>
       </div>
     </div>
+    {deleteConfirmOpen &&
+      createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-entry-dialog-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setDeleteConfirmOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative z-10 w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="delete-entry-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
+              Delete entry?
+            </h2>
+            <p className="text-gray-600 text-sm mb-5">
+              This will remove the entry and all its tasks and text. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
