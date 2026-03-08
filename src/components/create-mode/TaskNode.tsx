@@ -147,12 +147,12 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       <div
         {...attributes}
         {...listeners}
-        className={`flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${compact ? 'pt-1.5' : 'pt-3'}`}
+        className={`flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${compact ? 'pt-2.5' : 'pt-[17px]'}`}
         aria-label="Drag to reorder"
       >
         <GripVertical size={16} />
       </div>
-      <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${compact ? 'pt-1.5' : 'pt-3'}`}>
+      <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${compact ? 'pt-2.5' : 'pt-[17px]'}`}>
         <TaskCheckbox
           checked={task.completed}
           onChange={() => toggleTaskCompletion(task.id)}
@@ -192,7 +192,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className={`absolute right-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all -translate-y-1/2 ${compact ? 'top-[15px]' : 'top-[20px]'}`}
+        className={`absolute right-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all -translate-y-1/2 ${compact ? 'top-[17px]' : 'top-[24px]'}`}
         aria-label="Delete task"
       >
         <Trash2 size={16} />

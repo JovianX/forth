@@ -119,14 +119,8 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Execute</h2>
-        <p className="text-sm sm:text-base text-gray-600 mb-6">
-          View and manage your tasks. Drag and drop to reorder.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm mb-6">
-          <div className="text-sm text-gray-700">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200/50 shadow-sm mb-6">
+        <div className="text-sm text-gray-700">
             {isFiltered ? (
               <>
                 <span className="font-semibold text-gray-900">{displayedCount}</span> of{' '}
@@ -147,7 +141,6 @@ export const TaskList: React.FC<TaskListProps> = ({
                 )}
               </>
             )}
-          </div>
         </div>
       </div>
 

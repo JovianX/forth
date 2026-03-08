@@ -80,28 +80,31 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         }
       }}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0 w-full sm:w-auto group/item">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/item:opacity-100 transition-opacity"
-          aria-label="Drag to reorder"
-        >
-          <GripVertical size={20} />
+      <div className="flex items-start gap-3 flex-1 min-w-0 w-full sm:w-auto group/item">
+        {/* Drag + checkbox in a one-line band so checkbox center aligns with first line of title */}
+        <div className="min-h-6 flex items-center gap-3 flex-shrink-0">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/item:opacity-100 transition-opacity"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical size={20} />
+          </div>
+          {isNote ? (
+            <FileText size={20} className="flex-shrink-0" style={{ color: containerColor }} />
+          ) : isTextBlock ? (
+            <div className="w-5 h-5 flex-shrink-0" />
+          ) : (
+            <TaskCheckbox checked={task.completed} onChange={onToggle} />
+          )}
         </div>
-        {isNote ? (
-          <FileText size={20} className="flex-shrink-0" style={{ color: containerColor }} />
-        ) : isTextBlock ? (
-          <div className="w-5 h-5 flex-shrink-0" />
-        ) : (
-          <TaskCheckbox checked={task.completed} onChange={onToggle} />
-        )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap leading-6">
             {!isTextBlock && (
               <div
                 className={`
-                  font-semibold text-base sm:text-lg
+                  text-base sm:text-lg leading-6
                   ${task.completed && !isNote && !isTextBlock
                     ? 'line-through text-gray-400'
                     : 'text-gray-900'
@@ -180,11 +183,6 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <span className="text-xs text-gray-500 hidden sm:inline">
                 {containerPath.slice(0, -1).join(' / ')}
               </span>
-            )}
-            {!isNote && !isTextBlock && (
-              <div className="text-xs text-gray-500 font-medium">
-                Priority: <span className="text-gray-700">{task.priority}</span>
-              </div>
             )}
           </div>
         </div>
