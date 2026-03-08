@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DndContext,
   closestCenter,
@@ -440,6 +441,7 @@ export const PlanView: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(container.name);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const isSelected = selectedContainerId === container.id;
     const isRootContainer = depth === 0;
@@ -515,10 +517,13 @@ export const PlanView: React.FC = () => {
       }
     };
 
-    const handleDelete = (e: React.MouseEvent) => {
+    const handleDeleteClick = (e: React.MouseEvent) => {
       e.stopPropagation();
+      setDeleteConfirmOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
       if (isSelected) {
-        // If deleting the selected topic, select another one or deselect
         const remainingContainers = rootContainers.filter(c => c.id !== container.id);
         if (remainingContainers.length > 0) {
           setSelectedContainerId(remainingContainers[0].id);
@@ -527,7 +532,17 @@ export const PlanView: React.FC = () => {
         }
       }
       deleteContainer(container.id);
+      setDeleteConfirmOpen(false);
     };
+
+    useEffect(() => {
+      if (!deleteConfirmOpen) return;
+      const onEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setDeleteConfirmOpen(false);
+      };
+      document.addEventListener('keydown', onEscape);
+      return () => document.removeEventListener('keydown', onEscape);
+    }, [deleteConfirmOpen]);
 
     return (
       <div className="group">
@@ -636,7 +651,7 @@ export const PlanView: React.FC = () => {
             </button>
           )}
           <button
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all ml-auto flex-shrink-0"
             aria-label="Delete topic"
             title="Delete topic"
@@ -644,6 +659,49 @@ export const PlanView: React.FC = () => {
             <Trash2 size={14} />
           </button>
         </div>
+        {deleteConfirmOpen &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-topic-dialog-title"
+            >
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => setDeleteConfirmOpen(false)}
+                aria-hidden="true"
+              />
+              <div
+                className="relative z-10 w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-xl p-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 id="delete-topic-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
+                  Delete topic?
+                </h2>
+                <p className="text-gray-600 text-sm mb-5">
+                  This will remove &quot;{container.name}&quot; and all its subtopics and tasks. This cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteConfirm}
+                    className="px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
         {isExpanded && childContainers.length > 0 && (
           <div className="ml-2">
             {childContainers.map((child) => (

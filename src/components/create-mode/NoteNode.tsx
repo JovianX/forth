@@ -139,18 +139,18 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
       }`}
       onClick={handleNoteClick}
     >
-      <div className="flex items-start gap-2 relative pr-8">
+      <div className="flex items-center gap-2 relative pr-8">
         <div
           {...attributes}
           {...listeners}
           data-drag-handle
-          className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none flex-shrink-0"
+          className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none flex-shrink-0"
           aria-label="Drag to reorder"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical size={16} />
         </div>
-        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
           <FileText size={18} className="text-purple-500" />
         </div>
         <div className="flex-1 flex flex-col gap-2 min-w-0">

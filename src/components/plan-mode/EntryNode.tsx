@@ -247,7 +247,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1.5 text-gray-400 hover:text-gray-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded shrink-0"
+            className="flex items-center justify-center w-8 h-8 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded shrink-0"
           >
             <GripVertical size={16} />
           </div>
@@ -284,7 +284,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
           <button
             type="button"
             onClick={handleAiAction}
-            className="absolute top-0 right-9 p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0"
             title="AI"
             aria-label="AI"
           >
@@ -293,7 +293,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
           <button
             type="button"
             onClick={handleDeleteEntry}
-            className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10"
+            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0"
             title="Delete entry"
             aria-label="Delete entry"
           >
