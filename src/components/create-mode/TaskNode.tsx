@@ -138,7 +138,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-md group relative pr-8 ${
+      className={`flex items-start gap-2 rounded-md group relative pr-8 ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
@@ -147,12 +147,12 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       <div
         {...attributes}
         {...listeners}
-        className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        className={`flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${compact ? 'pt-1.5' : 'pt-3'}`}
         aria-label="Drag to reorder"
       >
         <GripVertical size={16} />
       </div>
-      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+      <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${compact ? 'pt-1.5' : 'pt-3'}`}>
         <TaskCheckbox
           checked={task.completed}
           onChange={() => toggleTaskCompletion(task.id)}
@@ -192,7 +192,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        className={`absolute right-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all -translate-y-1/2 ${compact ? 'top-[15px]' : 'top-[20px]'}`}
         aria-label="Delete task"
       >
         <Trash2 size={16} />
