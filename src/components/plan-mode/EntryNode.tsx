@@ -35,6 +35,7 @@ interface EntryNodeProps {
   depth: number;
   activeDragId?: string | null;
   containerId: string;
+  justCreated?: boolean;
 }
 
 export const EntryNode: React.FC<EntryNodeProps> = ({
@@ -42,6 +43,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   items,
   activeDragId,
   containerId,
+  justCreated = false,
 }) => {
   const { tasks, deleteTask, updateTask, addTask, reorderTasksInEntry } = useTaskContext();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const autoCreatedTextForEntryRef = useRef<string | null>(null);
 
   const formatEntryTitleDefault = (timestamp: number) =>
     new Date(timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -86,6 +89,17 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [menuOpen]);
+
+  // When entry is just created and empty, create a text block by default and focus it
+  useEffect(() => {
+    if (!justCreated || items.length > 0 || autoCreatedTextForEntryRef.current === entry.id) return;
+    autoCreatedTextForEntryRef.current = entry.id;
+    const priorityAtEnd = undefined;
+    addTask('', containerId, priorityAtEnd, 'text-block', '', (newTaskId) => {
+      updateTask(newTaskId, { entryId: entry.id });
+      setNewlyCreatedTextBlockId(newTaskId);
+    });
+  }, [justCreated, items.length, entry.id, containerId, addTask, updateTask]);
 
   const handleTitleSave = () => {
     const trimmed = title.trim();
@@ -223,6 +237,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
           : 'hover:border-gray-300/80 hover:shadow'
       }`}
     >
+      <div className={`h-full rounded-xl ${justCreated ? 'new-entry-enter' : ''}`}>
       <div className="p-4">
         <div className="relative flex items-center gap-2 mb-3 group rounded-lg transition-colors group-hover:bg-gray-50/50 -m-1 p-1">
           <div
@@ -408,6 +423,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
             )}
           </DndContext>
         )}
+      </div>
       </div>
     </div>
   );

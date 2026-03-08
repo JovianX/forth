@@ -39,6 +39,7 @@ export const PlanView: React.FC = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isCreatingContainer, setIsCreatingContainer] = useState(false);
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
+  const [newlyCreatedEntryId, setNewlyCreatedEntryId] = useState<string | null>(null);
   const processedEntriesRef = useRef<Set<string>>(new Set());
   const pendingEntryIdsRef = useRef<Map<string, string>>(new Map()); // Maps containerId to entryId
   
@@ -273,7 +274,14 @@ export const PlanView: React.FC = () => {
             ? getPriorityAfter(entries[entries.length - 1].priority)
             : getPriorityBetween(entries[index - 1].priority, entries[index].priority);
     const maxOrder = entries.length > 0 ? Math.max(...entries.map((e) => e.entryOrder ?? 0)) : -1;
-    addTask(formatEntryTitleDefault(new Date()), selectedContainerId, priority, 'entry');
+    addTask(
+      formatEntryTitleDefault(new Date()),
+      selectedContainerId,
+      priority,
+      'entry',
+      undefined,
+      (newTaskId) => setNewlyCreatedEntryId(newTaskId)
+    );
     setTimeout(() => {
       const allTasks = tasks.filter((t) => t.containerId === selectedContainerId && t.type === 'entry');
       const newEntry = allTasks.find((t) => t.entryOrder === undefined || t.entryOrder === null);
@@ -282,6 +290,13 @@ export const PlanView: React.FC = () => {
       }
     }, 10);
   };
+
+  // Clear "just created" highlight after animation
+  useEffect(() => {
+    if (!newlyCreatedEntryId) return;
+    const t = setTimeout(() => setNewlyCreatedEntryId(null), 1800);
+    return () => clearTimeout(t);
+  }, [newlyCreatedEntryId]);
 
   // Effect to automatically create text blocks for newly created entries
   useEffect(() => {
@@ -893,18 +908,30 @@ export const PlanView: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {/* Add entry at the top */}
-                    <div
-                      className="relative min-h-[12px] flex items-center group cursor-pointer -my-0.5"
+                    {/* Main CTA: + Entry at the top */}
+                    <button
+                      type="button"
                       onClick={() => handleCreateEntry(0)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-transparent transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 mb-1 hover:text-white"
+                      style={{
+                        backgroundColor: primaryLight,
+                        borderColor: 'transparent',
+                        color: primaryDark,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = primaryColor;
+                        e.currentTarget.style.borderColor = primaryColor;
+                        e.currentTarget.style.color = 'white';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = primaryLight;
+                        e.currentTarget.style.borderColor = 'transparent';
+                        e.currentTarget.style.color = primaryDark;
+                      }}
                     >
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <div className="h-px bg-gray-300 w-full" />
-                        <div className="absolute bg-gray-400 rounded-full p-1.5 shadow-md group-hover:bg-gray-500 transition-colors">
-                          <Plus size={12} className="text-white" />
-                        </div>
-                      </div>
-                    </div>
+                      <Plus size={16} strokeWidth={2.5} />
+                      Entry
+                    </button>
                     {entries.map((entry, index) => {
                       const entryItems = itemsByEntry.get(entry.id) || [];
 
@@ -929,6 +956,7 @@ export const PlanView: React.FC = () => {
                             depth={0}
                             activeDragId={activeId}
                             containerId={selectedContainer.id}
+                            justCreated={entry.id === newlyCreatedEntryId}
                           />
                         </React.Fragment>
                       );
