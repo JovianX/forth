@@ -182,7 +182,7 @@ function App() {
               />
             </div>
           ) : (
-            <PlanView />
+            <PlanView onColorPaletteClick={() => setShowColorPreview(true)} />
           )}
         </div>
       </main>

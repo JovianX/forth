@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Scroll still works (wheel / trackpad); no persistent track in the narrow sidebar */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

@@ -33,8 +33,13 @@ import {
 } from '../../utils/colorUtils';
 import { getPriorityAfter, getPriorityBefore, getPriorityBetween } from '../../utils/taskUtils';
 import { Plus } from 'lucide-react';
+import { UserMenu } from '../UserMenu';
 
-export const PlanView: React.FC = () => {
+interface PlanViewProps {
+  onColorPaletteClick?: () => void;
+}
+
+export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
   const { containers, tasks, reorderTasksInContainer, moveTaskToContainer, addTask, updateTask, addContainer, deleteContainer, updateContainer, reorderContainers } = useTaskContext();
   const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -723,7 +728,7 @@ export const PlanView: React.FC = () => {
       <div className="flex h-full relative">
         {/* Left Sidebar - Topics */}
         <div
-          className="relative h-full border-r bg-white/80 backdrop-blur-sm flex-shrink-0 overflow-y-auto"
+          className="relative z-10 h-full min-h-0 border-r bg-white/80 backdrop-blur-sm flex-shrink-0 flex flex-col"
           style={{
             borderColor,
             width: sidebarCollapsed ? 48 : sidebarWidth,
@@ -731,134 +736,173 @@ export const PlanView: React.FC = () => {
           }}
         >
           {!sidebarCollapsed ? (
-            <div className="p-4 flex flex-col h-full">
+            <div className="p-4 flex flex-col h-full min-h-0">
               <div className="flex items-center justify-between mb-3 px-1 pb-2 shrink-0 border-b border-gray-200/80">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Topics
                 </h2>
-                <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => {
-                      // Set insertAfterId to the last topic's ID, or null if no topics exist
-                      const lastTopic = rootContainers.length > 0 ? rootContainers[rootContainers.length - 1] : null;
-                      setInsertAfterId(lastTopic?.id || null);
-                      setIsCreatingContainer(true);
-                    }}
-                    className={`p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all ${
-                      isCreatingContainer ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    title="Add topic"
-                    disabled={isCreatingContainer}
-                  >
-                    <Plus size={16} />
-                  </button>
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
-                    title="Collapse sidebar"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                  title="Collapse sidebar"
+                >
+                  <ChevronLeft size={16} />
+                </button>
               </div>
-            <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
+            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar -mx-4 px-4">
             {rootContainers.length === 0 && !isCreatingContainer ? (
-              <div className="text-sm text-gray-500 py-4 px-2">
-                No topics yet. Click the + button to create one.
+              <div className="space-y-3 py-2 px-2">
+                <p className="text-sm text-gray-500">
+                  No topics yet. Use the button below to add one.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInsertAfterId(null);
+                    setIsCreatingContainer(true);
+                  }}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                  title="Add topic"
+                >
+                  <Plus size={16} />
+                </button>
               </div>
             ) : (
-              <SortableContext
-                items={rootContainers.map((c) => c.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-1">
-                  {rootContainers.map((container) => (
-                    <React.Fragment key={container.id}>
-                      <ContainerItem container={container} depth={0} />
-                      {isCreatingContainer && insertAfterId === container.id && (
-                        <CreateTopicForm
-                          insertAfterId={insertAfterId}
-                          onCreated={(containerId) => {
-                            setIsCreatingContainer(false);
-                            setInsertAfterId(null);
-                            if (containerId) {
-                              setSelectedContainerId(containerId);
-                              // Automatically create an entry for the new topic
-                              createEntryForContainer(containerId);
-                            }
-                          }}
-                          onCancel={() => {
-                            setIsCreatingContainer(false);
-                            setInsertAfterId(null);
-                          }}
-                        />
-                      )}
-                    </React.Fragment>
-                  ))}
-                  {isCreatingContainer && (insertAfterId === null || rootContainers.length === 0) && (
-                    <CreateTopicForm
-                      insertAfterId={insertAfterId}
-                      onCreated={(containerId) => {
-                        setIsCreatingContainer(false);
-                        setInsertAfterId(null);
-                        if (containerId) {
-                          setSelectedContainerId(containerId);
-                          // Automatically create an entry for the new topic
-                          createEntryForContainer(containerId);
-                        }
+              <>
+                <SortableContext
+                  items={rootContainers.map((c) => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1">
+                    {rootContainers.map((container) => (
+                      <React.Fragment key={container.id}>
+                        <ContainerItem container={container} depth={0} />
+                        {isCreatingContainer && insertAfterId === container.id && (
+                          <CreateTopicForm
+                            insertAfterId={insertAfterId}
+                            onCreated={(containerId) => {
+                              setIsCreatingContainer(false);
+                              setInsertAfterId(null);
+                              if (containerId) {
+                                setSelectedContainerId(containerId);
+                                // Automatically create an entry for the new topic
+                                createEntryForContainer(containerId);
+                              }
+                            }}
+                            onCancel={() => {
+                              setIsCreatingContainer(false);
+                              setInsertAfterId(null);
+                            }}
+                          />
+                        )}
+                      </React.Fragment>
+                    ))}
+                    {isCreatingContainer && (insertAfterId === null || rootContainers.length === 0) && (
+                      <CreateTopicForm
+                        insertAfterId={insertAfterId}
+                        onCreated={(containerId) => {
+                          setIsCreatingContainer(false);
+                          setInsertAfterId(null);
+                          if (containerId) {
+                            setSelectedContainerId(containerId);
+                            // Automatically create an entry for the new topic
+                            createEntryForContainer(containerId);
+                          }
+                        }}
+                        onCancel={() => {
+                          setIsCreatingContainer(false);
+                          setInsertAfterId(null);
+                        }}
+                      />
+                    )}
+                  </div>
+                </SortableContext>
+                {!isCreatingContainer && (
+                  <div className="pt-2 flex justify-start">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const lastTopic =
+                          rootContainers.length > 0
+                            ? rootContainers[rootContainers.length - 1]
+                            : null;
+                        setInsertAfterId(lastTopic?.id || null);
+                        setIsCreatingContainer(true);
                       }}
-                      onCancel={() => {
-                        setIsCreatingContainer(false);
-                        setInsertAfterId(null);
-                      }}
-                    />
-                  )}
-                </div>
-              </SortableContext>
+                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                      title="Add topic"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
             </div>
+              <div className="shrink-0 pt-3 mt-auto border-t border-gray-200/80 flex justify-start">
+                <UserMenu
+                  onColorPaletteClick={onColorPaletteClick}
+                  variant="sidebar"
+                />
+              </div>
             </div>
           ) : (
-            <div className="p-2 flex flex-col items-center gap-2 pt-2">
+            <div className="p-2 flex flex-col items-center h-full min-h-0 pt-2">
               <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all mb-1"
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all mb-1 shrink-0"
                 title="Expand sidebar"
               >
                 <ChevronRight size={18} />
               </button>
-              {rootContainers.map((container) => {
-                const isSelected = selectedContainerId === container.id;
-                return (
-                  <button
-                    key={container.id}
-                    onClick={() => setSelectedContainerId(container.id)}
-                    className={`p-2 rounded transition-all ${
-                      isSelected ? 'bg-white shadow-sm' : 'hover:bg-white/60'
-                    }`}
-                    style={{
-                      borderLeft: isSelected ? `3px solid ${container.color}` : '3px solid transparent',
-                    }}
-                    title={container.name}
-                  >
-                    <Zap size={18} style={{ color: container.color }} />
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => {
-                  // Expand the sidebar first
-                  setSidebarCollapsed(false);
-                  // Set insertAfterId to the last topic's ID, or null if no topics exist
-                  const lastTopic = rootContainers.length > 0 ? rootContainers[rootContainers.length - 1] : null;
-                  setInsertAfterId(lastTopic?.id || null);
-                  setIsCreatingContainer(true);
-                }}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all mt-2"
-                title="Add topic"
+              <div
+                className={`flex-1 min-h-0 w-full flex flex-col items-center gap-2 py-1 ${
+                  rootContainers.length > 0
+                    ? 'overflow-y-auto hide-scrollbar'
+                    : 'overflow-hidden'
+                }`}
               >
-                <Plus size={18} />
-              </button>
+                {rootContainers.map((container) => {
+                  const isSelected = selectedContainerId === container.id;
+                  return (
+                    <button
+                      key={container.id}
+                      onClick={() => setSelectedContainerId(container.id)}
+                      className={`p-2 rounded transition-all ${
+                        isSelected ? 'bg-white shadow-sm' : 'hover:bg-white/60'
+                      }`}
+                      style={{
+                        borderLeft: isSelected ? `3px solid ${container.color}` : '3px solid transparent',
+                      }}
+                      title={container.name}
+                    >
+                      <Zap size={18} style={{ color: container.color }} />
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarCollapsed(false);
+                    const lastTopic =
+                      rootContainers.length > 0
+                        ? rootContainers[rootContainers.length - 1]
+                        : null;
+                    setInsertAfterId(lastTopic?.id || null);
+                    setIsCreatingContainer(true);
+                  }}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all shrink-0"
+                  title="Add topic"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+              <div className="shrink-0 pt-2 mt-auto w-full flex justify-center border-t border-gray-200/80">
+                <UserMenu
+                  onColorPaletteClick={onColorPaletteClick}
+                  variant="sidebar"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -869,7 +913,7 @@ export const PlanView: React.FC = () => {
             role="separator"
             aria-label="Resize sidebar"
             title="Drag to resize"
-            className={`group flex-shrink-0 h-full cursor-col-resize flex justify-center items-center select-none touch-none relative transition-colors duration-150 ${
+            className={`group relative z-10 flex-shrink-0 h-full cursor-col-resize flex justify-center items-center select-none touch-none transition-colors duration-150 ${
               isResizing ? 'bg-gray-100/60' : 'hover:bg-gray-100/50'
             }`}
             style={{
@@ -917,7 +961,7 @@ export const PlanView: React.FC = () => {
 
         {/* Right Content Area - fixed middle block */}
         <div
-          className={`flex-1 min-w-0 overflow-y-auto backdrop-blur-sm transition-shadow duration-200 ${
+          className={`relative z-0 flex-1 min-w-0 overflow-y-auto backdrop-blur-sm transition-shadow duration-200 ${
             isResizing ? 'bg-white/50' : 'bg-white/40'
           }`}
           style={{

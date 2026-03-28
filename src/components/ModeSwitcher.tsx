@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ClipboardList, ListChecks, User, Palette, Plus, LogOut } from 'lucide-react';
+import React from 'react';
+import { ClipboardList, ListChecks, Plus } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
-import { useAuth } from '../context/AuthContext';
+import { UserMenu } from './UserMenu';
 import { Mode, Container } from '../types';
 import { getPalette } from '../utils/paletteUtils';
 import { FilterMenu } from './execution-mode/FilterMenu';
@@ -1188,28 +1188,8 @@ const getIconSVG = (iconName: string | null) => {
   }
 };
 
-export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
+export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ 
   filterMenuProps, onColorPaletteClick, onAddContainerClick }) => {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const { user, signOut } = useAuth();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserMenu]);
   const { mode, setMode } = useTaskContext();
   
   // Get selected font from localStorage
@@ -1431,100 +1411,12 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
               ))}
             </div>
             
-            {/* User Menu */}
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200"
-                style={{
-                  backgroundColor: `${primaryLight}80`,
-                  border: `1px solid ${borderColor}`,
-                  color: primaryDark,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = `${primaryLight}CC`;
-                  e.currentTarget.style.borderColor = primaryColor;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = `${primaryLight}80`;
-                  e.currentTarget.style.borderColor = borderColor;
-                }}
-                aria-label="User menu"
-              >
-                <User size={20} />
-              </button>
-              
-              {/* Dropdown Menu */}
-              {showUserMenu && (
-                <div 
-                  className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50"
-                  style={{
-                    border: `1px solid ${borderColor}`,
-                  }}
-                >
-                  <div 
-                    className="px-4 py-2"
-                    style={{
-                      borderBottom: `1px solid ${primaryLight}`,
-                    }}
-                  >
-                    <p className="text-sm font-semibold text-gray-900">User Menu</p>
-                    {user?.email && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">{user.email}</p>
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      if (onColorPaletteClick) {
-                        onColorPaletteClick();
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors"
-                    style={{
-                      color: primaryDark,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = primaryLight;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <Palette size={18} style={{ color: primaryColor }} />
-                    <span>Theme</span>
-                  </button>
-                  
-                  <div 
-                    className="px-4 py-2 mt-1"
-                    style={{
-                      borderTop: `1px solid ${primaryLight}`,
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        signOut();
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors"
-                      style={{
-                        color: primaryDark,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = primaryLight;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <LogOut size={18} style={{ color: primaryColor }} />
-                      <span>Sign out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {mode !== 'capture' && (
+              <UserMenu
+                onColorPaletteClick={onColorPaletteClick}
+                variant="header"
+              />
+            )}
           </div>
         </div>
       </div>
