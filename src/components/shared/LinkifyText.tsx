@@ -23,7 +23,11 @@ interface LinkifyTextProps {
  */
 export const LinkifyText: React.FC<LinkifyTextProps> = ({ text, className = '' }) => {
   if (!text || typeof text !== 'string') {
-    return <span className={className}>{text}</span>;
+    return (
+      <span dir="auto" className={className}>
+        {text}
+      </span>
+    );
   }
 
   const parts: React.ReactNode[] = [];
@@ -61,11 +65,23 @@ export const LinkifyText: React.FC<LinkifyTextProps> = ({ text, className = '' }
   }
 
   if (parts.length === 0) {
-    return <span className={className}>{text}</span>;
+    return (
+      <span dir="auto" className={className}>
+        {text}
+      </span>
+    );
   }
   if (parts.length === 1 && typeof parts[0] === 'string') {
-    return <span className={className}>{parts[0]}</span>;
+    return (
+      <span dir="auto" className={className}>
+        {parts[0]}
+      </span>
+    );
   }
 
-  return <span className={className}>{parts}</span>;
+  return (
+    <span dir="auto" className={className}>
+      {parts}
+    </span>
+  );
 };

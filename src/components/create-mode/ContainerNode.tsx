@@ -202,6 +202,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           <input
             ref={inputRef}
             type="text"
+            dir="auto"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={handleSave}
@@ -212,6 +213,7 @@ export const ContainerNode: React.FC<ContainerNodeProps> = ({ container, depth, 
           />
         ) : (
           <span
+            dir="auto"
             className="flex-1 font-medium cursor-text px-1 py-0.5 edit-text"
             style={{ color: containerDarkColor }}
             onClick={(e) => {

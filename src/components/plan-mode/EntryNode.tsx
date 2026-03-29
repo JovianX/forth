@@ -264,6 +264,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               <input
                 ref={titleInputRef}
                 type="text"
+                dir="auto"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={handleTitleSave}
@@ -278,12 +279,13 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
                   setTitle(displayTitle);
                   setIsEditingTitle(true);
                 }}
-                className="flex-1 min-w-0 text-left px-2 py-1 text-lg font-semibold tracking-tight text-gray-900 rounded-lg hover:bg-gray-100/80 transition-colors truncate"
+                className="flex-1 min-w-0 text-start px-2 py-1 text-lg font-semibold tracking-tight text-gray-900 rounded-lg hover:bg-gray-100/80 transition-colors truncate"
                 title={
                   entry.updatedAt != null && entry.updatedAt !== entry.createdAt
                     ? `Created: ${formatExactTimestamp(entry.createdAt)} • Edited: ${formatExactTimestamp(entry.updatedAt)}`
                     : `Created: ${formatExactTimestamp(entry.createdAt)}`
                 }
+                dir="auto"
               >
                 {displayTitle}
               </button>

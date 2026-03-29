@@ -148,7 +148,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       </div>
       {/* Spacer to align text with task title (same width as task checkbox) */}
       <div className="w-5 h-5 flex-shrink-0" aria-hidden />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pe-11">
         {isEditing ? (
           <div 
             className="flex flex-col"
@@ -213,7 +213,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           e.stopPropagation();
           deleteTask(task.id);
         }}
-        className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        className="absolute end-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
         aria-label="Delete text block"
       >
         <Trash2 size={16} />

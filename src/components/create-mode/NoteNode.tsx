@@ -159,6 +159,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
               <input
                 ref={titleInputRef}
                 type="text"
+                dir="auto"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={handleSaveTitle}
@@ -177,6 +178,7 @@ export const NoteNode: React.FC<NoteNodeProps> = ({ task, depth, isDragOver = fa
             ) : (
               <div className="flex items-center gap-2 flex-1">
                 <span
+                  dir="auto"
                   className="inline-block cursor-text px-1 py-0.5 text-gray-900 font-medium"
                   onClick={(e) => {
                     e.stopPropagation();

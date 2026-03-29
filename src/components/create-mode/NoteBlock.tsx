@@ -89,7 +89,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
       <div
         ref={setNodeRef}
         style={style}
-        className="flex items-center gap-2 py-1 group/block relative pr-8"
+        className="flex items-center gap-2 py-1 group/block relative pe-11"
       >
         <div
           {...attributes}
@@ -107,6 +107,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           <input
             ref={inputRef}
             type="text"
+            dir="auto"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onBlur={handleSave}
@@ -136,7 +137,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             e.stopPropagation();
             onDelete(block.id);
           }}
-          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          className="absolute end-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           aria-label="Delete block"
         >
           <Trash2 size={14} />
@@ -165,7 +166,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           autoFocus={true}
         />
       ) : (
-        <div className="flex items-start gap-2 relative pr-8">
+        <div className="flex items-start gap-2 relative pe-11">
           <div
             {...attributes}
             {...listeners}
@@ -185,7 +186,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
               e.stopPropagation();
               onDelete(block.id);
             }}
-            className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            className="absolute end-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
             aria-label="Delete block"
           >
             <Trash2 size={14} />

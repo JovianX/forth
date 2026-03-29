@@ -76,6 +76,7 @@ export const CreateContainer: React.FC<CreateContainerProps> = ({
           <input
             ref={inputRef}
             type="text"
+            dir="auto"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Topic name..."

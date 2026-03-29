@@ -78,6 +78,7 @@ export const CreateTask: React.FC<CreateTaskProps> = ({
       <input
         ref={inputRef}
         type="text"
+        dir="auto"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Task title..."

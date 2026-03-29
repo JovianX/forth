@@ -588,6 +588,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
           <input
             ref={inputRef}
             type="text"
+            dir="auto"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={handleBlur}
@@ -781,6 +782,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
             <input
               ref={inputRef}
               type="text"
+              dir="auto"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={handleSave}
@@ -802,10 +804,11 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              className="flex-1 min-w-0 text-left"
+              className="flex-1 min-w-0 text-start"
               title="Double-click to rename"
             >
               <span
+                dir="auto"
                 className={`truncate ${
                   isSelected || isDraggingOver ? 'font-medium text-gray-900' : 'text-gray-700'
                 }`}

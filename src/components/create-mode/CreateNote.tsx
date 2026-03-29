@@ -83,6 +83,7 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
           <input
             ref={titleInputRef}
             type="text"
+            dir="auto"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Note title..."
@@ -108,6 +109,7 @@ export const CreateNote: React.FC<CreateNoteProps> = ({
           />
           <textarea
             ref={contentTextareaRef}
+            dir="auto"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your note..."

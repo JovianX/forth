@@ -84,13 +84,13 @@ body {
 
 .wysiwyg-content ul, .wysiwyg-content ol {
   margin: 0.5em 0;
-  padding-left: 0;
+  padding-inline-start: 0;
   list-style-type: none;
 }
 
 .wysiwyg-content li {
   margin: 0.25em 0;
-  padding-left: 1.5em;
+  padding-inline-start: 1.5em;
   list-style: none;
   position: relative;
 }
@@ -100,7 +100,7 @@ body {
 .wysiwyg-content ol li::before {
   content: "\2022";
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   color: #374151;
   font-size: 1.4em;
   font-weight: bold;
@@ -134,6 +134,26 @@ body {
 
 .wysiwyg-content s {
   text-decoration: line-through;
+}
+
+/* Quill block direction / alignment — match edit mode (classes and/or dir from saved HTML) */
+/* Do not wrap this container with dir="auto"; it overrides per-block RTL from Quill. */
+.wysiwyg-content .ql-direction-rtl,
+.wysiwyg-content [dir="rtl"] {
+  direction: rtl;
+  text-align: start;
+}
+
+.wysiwyg-content .ql-align-center {
+  text-align: center;
+}
+
+.wysiwyg-content .ql-align-right {
+  text-align: right;
+}
+
+.wysiwyg-content .ql-align-justify {
+  text-align: justify;
 }
 
 /* New entry appearance in Plan view */

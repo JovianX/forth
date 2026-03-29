@@ -138,7 +138,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-2 rounded-md group relative pr-8 ${
+      className={`flex items-start gap-2 rounded-md group relative pe-11 ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
@@ -161,6 +161,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       {isEditing ? (
         <textarea
           ref={inputRef}
+          dir="auto"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleSave}
@@ -192,7 +193,7 @@ export const TaskNode: React.FC<TaskNodeProps> = ({ task, depth, isDragOver = fa
       )}
       <button
         onClick={() => deleteTask(task.id)}
-        className={`absolute right-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all -translate-y-1/2 ${compact ? 'top-[17px]' : 'top-[24px]'}`}
+        className={`absolute end-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all -translate-y-1/2 ${compact ? 'top-[17px]' : 'top-[24px]'}`}
         aria-label="Delete task"
       >
         <Trash2 size={16} />

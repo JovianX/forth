@@ -71,7 +71,9 @@ export const PersonaResponsePanel: React.FC<PersonaResponsePanelProps> = ({
         )}
         {!loading && error && (
           <div className="space-y-3">
-            <p className="text-gray-700 leading-relaxed">{error}</p>
+            <p dir="auto" className="text-gray-700 leading-relaxed">
+              {error}
+            </p>
             {error.includes('Settings') && onOpenSettings && (
               <button
                 type="button"
@@ -85,7 +87,9 @@ export const PersonaResponsePanel: React.FC<PersonaResponsePanelProps> = ({
           </div>
         )}
         {!loading && !error && response && (
-          <div className="whitespace-pre-wrap leading-relaxed text-gray-800">{response}</div>
+          <div dir="auto" className="whitespace-pre-wrap leading-relaxed text-gray-800">
+            {response}
+          </div>
         )}
         {!loading && !error && !response && personaName && (
           <p className="text-gray-400 text-xs">No response yet.</p>

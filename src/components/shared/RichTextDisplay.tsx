@@ -19,7 +19,7 @@ export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, class
 
   return (
     <div
-      className={`text-gray-700 cursor-text ${className}`}
+      className={`text-gray-700 cursor-text wysiwyg-content ${className}`}
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );

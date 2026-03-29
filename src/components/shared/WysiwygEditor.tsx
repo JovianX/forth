@@ -489,6 +489,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       toolbar: [
         ['bold', 'italic', 'underline', 'strike'],
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ direction: 'rtl' }],
         ['clean']
       ],
       clipboard: {
@@ -522,13 +523,15 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
   const formats = [
     'bold', 'italic', 'underline', 'strike',
-    'list'
+    'list',
+    'direction',
+    'align',
   ];
 
   return (
     <>
-      <div 
-        className={`${className} ${editorIdRef.current}`} 
+      <div
+        className={`${className} ${editorIdRef.current}`}
         onClick={(e) => e.stopPropagation()}
       >
         <ReactQuill
@@ -615,12 +618,12 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor ul,
         .${editorIdRef.current} .ql-editor ol {
           margin: 0.5em 0;
-          padding-left: 0;
+          padding-inline-start: 0;
           list-style-type: none;
         }
         .${editorIdRef.current} .ql-editor li {
           margin: 0.25em 0;
-          padding-left: 1.5em;
+          padding-inline-start: 1.5em;
           list-style: none;
           position: relative;
         }
@@ -629,7 +632,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor ol li::before {
           content: "\\2022" !important;
           position: absolute !important;
-          left: 0 !important;
+          inset-inline-start: 0 !important;
           color: #374151 !important;
           font-size: 1.4em !important;
           font-weight: bold !important;
@@ -652,6 +655,10 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         }
         .${editorIdRef.current} .ql-editor s {
           text-decoration: line-through;
+        }
+        .${editorIdRef.current} .ql-editor .ql-direction-rtl,
+        .${editorIdRef.current} .ql-editor [dir="rtl"] {
+          direction: rtl;
         }
         .${editorIdRef.current} .ql-editor.ql-blank::before {
           color: #9ca3af;
