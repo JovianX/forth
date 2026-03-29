@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -34,18 +34,44 @@ import {
 import { getPriorityAfter, getPriorityBefore, getPriorityBetween } from '../../utils/taskUtils';
 import { Plus } from 'lucide-react';
 import { UserMenu } from '../UserMenu';
+import { PersonaResponsePanel } from './PersonaResponsePanel';
+import type { Persona } from '../../types';
+import { serializeEntryForPersona } from '../../utils/serializeEntryForPersona';
+import {
+  loadPersonas,
+  loadDefaultPersonaId,
+  loadOllamaBaseUrl,
+  loadOllamaModel,
+} from '../../utils/personaStorage';
+import {
+  ollamaChat,
+  buildPersonaSystemMessage,
+  buildPersonaUserMessage,
+} from '../../utils/ollamaClient';
+import { escapeHtml } from '../../utils/textUtils';
 
 interface PlanViewProps {
+  onSettingsClick?: () => void;
   onColorPaletteClick?: () => void;
 }
 
-export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
+export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPaletteClick }) => {
   const { containers, tasks, reorderTasksInContainer, moveTaskToContainer, addTask, updateTask, addContainer, deleteContainer, updateContainer, reorderContainers } = useTaskContext();
   const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isCreatingContainer, setIsCreatingContainer] = useState(false);
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
   const [newlyCreatedEntryId, setNewlyCreatedEntryId] = useState<string | null>(null);
+  type PersonaPanelState = {
+    entryId: string;
+    containerId: string;
+    persona: Persona | null;
+    serializedEntry: string;
+    loading: boolean;
+    response: string;
+    error: string | null;
+  };
+  const [personaPanel, setPersonaPanel] = useState<PersonaPanelState | null>(null);
   const processedEntriesRef = useRef<Set<string>>(new Set());
   const pendingEntryIdsRef = useRef<Map<string, string>>(new Map()); // Maps containerId to entryId
   
@@ -69,7 +95,34 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(0);
-  
+
+  /** Width transition looks smooth when resizing ends, but during collapse/expand it fights the layout swap and makes topics appear to drift. */
+  const [sidebarWidthTransition, setSidebarWidthTransition] = useState(true);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarWidthTransition(false);
+    setSidebarCollapsed((c) => !c);
+  }, []);
+
+  const expandSidebar = useCallback(() => {
+    setSidebarWidthTransition(false);
+    setSidebarCollapsed(false);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (sidebarWidthTransition) return;
+    let inner: number | undefined;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        setSidebarWidthTransition(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      if (inner !== undefined) cancelAnimationFrame(inner);
+    };
+  }, [sidebarWidthTransition]);
+
   // Save sidebar state to localStorage
   useEffect(() => {
     localStorage.setItem('captureSidebarCollapsed', String(sidebarCollapsed));
@@ -155,6 +208,117 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
     });
     return map;
   }, [tasks, selectedContainerId, entries]);
+
+  const runOllamaForPersona = useCallback(
+    async (entryId: string, serializedEntry: string, persona: Persona) => {
+      try {
+        const baseUrl = loadOllamaBaseUrl();
+        const model = loadOllamaModel();
+        const content = await ollamaChat({
+          baseUrl,
+          model,
+          messages: [
+            { role: 'system', content: buildPersonaSystemMessage(persona.instructions) },
+            { role: 'user', content: buildPersonaUserMessage(serializedEntry) },
+          ],
+        });
+        setPersonaPanel((prev) => {
+          if (!prev || prev.entryId !== entryId) return prev;
+          return { ...prev, loading: false, response: content, error: null };
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Request failed';
+        setPersonaPanel((prev) => {
+          if (!prev || prev.entryId !== entryId) return prev;
+          return { ...prev, loading: false, error: msg, response: '' };
+        });
+      }
+    },
+    []
+  );
+
+  const handlePersonaSparkle = useCallback(
+    async ({
+      entry,
+      items: entryItems,
+      containerId,
+    }: {
+      entry: Task;
+      items: Task[];
+      containerId: string;
+    }) => {
+      const sorted = [...entryItems].sort((a, b) => b.priority - a.priority);
+      const { fullText, isEmpty } = serializeEntryForPersona(entry, sorted);
+      if (isEmpty) {
+        setPersonaPanel({
+          entryId: entry.id,
+          containerId,
+          persona: null,
+          serializedEntry: fullText,
+          loading: false,
+          response: '',
+          error:
+            'Add some text, tasks, or notes to this entry before asking for feedback.',
+        });
+        return;
+      }
+      const personas = loadPersonas();
+      const defaultId = loadDefaultPersonaId();
+      const persona = personas.find((p) => p.id === defaultId) ?? personas[0] ?? null;
+      if (!persona) {
+        setPersonaPanel({
+          entryId: entry.id,
+          containerId,
+          persona: null,
+          serializedEntry: fullText,
+          loading: false,
+          response: '',
+          error: 'Create a persona in Settings first (sparkles uses your default persona).',
+        });
+        return;
+      }
+      setPersonaPanel({
+        entryId: entry.id,
+        containerId,
+        persona,
+        serializedEntry: fullText,
+        loading: true,
+        response: '',
+        error: null,
+      });
+      await runOllamaForPersona(entry.id, fullText, persona);
+    },
+    [runOllamaForPersona]
+  );
+
+  const handlePersonaRegenerate = useCallback(() => {
+    if (!personaPanel?.persona) return;
+    const { entryId, serializedEntry, persona } = personaPanel;
+    setPersonaPanel((p) => (p ? { ...p, loading: true, error: null, response: '' } : p));
+    void runOllamaForPersona(entryId, serializedEntry, persona);
+  }, [personaPanel, runOllamaForPersona]);
+
+  const handlePersonaInsert = useCallback(() => {
+    if (!personaPanel?.persona || !personaPanel.response.trim()) return;
+    const { entryId, containerId, persona, response } = personaPanel;
+    const entryItems = itemsByEntry.get(entryId) || [];
+    const sortedItems = [...entryItems].sort((a, b) => b.priority - a.priority);
+    const priorityAtEnd =
+      sortedItems.length > 0 ? Math.min(...sortedItems.map((t) => t.priority)) - 1 : undefined;
+    const dateStr = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    const bodyHtml = escapeHtml(response).replace(/\n/g, '<br>');
+    const html = `<p><strong>${escapeHtml(persona.name)}</strong> · ${escapeHtml(dateStr)}</p><p>${bodyHtml}</p>`;
+    addTask('', containerId, priorityAtEnd, 'text-block', html, (newTaskId) => {
+      updateTask(newTaskId, { entryId });
+    });
+  }, [personaPanel, itemsByEntry, addTask, updateTask]);
+
+  const closePersonaPanel = useCallback(() => setPersonaPanel(null), []);
 
   // Auto-select first container if none selected
   React.useEffect(() => {
@@ -732,7 +896,8 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
           style={{
             borderColor,
             width: sidebarCollapsed ? 48 : sidebarWidth,
-            transition: isResizing ? 'none' : 'width 0.2s ease-out',
+            transition:
+              isResizing || !sidebarWidthTransition ? 'none' : 'width 0.2s ease-out',
           }}
         >
           {!sidebarCollapsed ? (
@@ -742,7 +907,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                   Topics
                 </h2>
                 <button
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  onClick={toggleSidebarCollapsed}
                   className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
                   title="Collapse sidebar"
                 >
@@ -751,21 +916,23 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
               </div>
             <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar -mx-4 px-4">
             {rootContainers.length === 0 && !isCreatingContainer ? (
-              <div className="space-y-3 py-2 px-2">
-                <p className="text-sm text-gray-500">
+              <div className="space-y-3 py-2">
+                <p className="text-sm text-gray-500 px-2">
                   No topics yet. Use the button below to add one.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInsertAfterId(null);
-                    setIsCreatingContainer(true);
-                  }}
-                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
-                  title="Add topic"
-                >
-                  <Plus size={16} />
-                </button>
+                <div className="pl-5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInsertAfterId(null);
+                      setIsCreatingContainer(true);
+                    }}
+                    className="flex items-center gap-2 w-full min-w-0 p-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all text-left"
+                  >
+                    <Plus size={16} className="shrink-0" />
+                    <span className="truncate">Add topic</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -818,7 +985,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                   </div>
                 </SortableContext>
                 {!isCreatingContainer && (
-                  <div className="pt-2 flex justify-start">
+                  <div className="pt-2 flex justify-start pl-5">
                     <button
                       type="button"
                       onClick={() => {
@@ -829,10 +996,10 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                         setInsertAfterId(lastTopic?.id || null);
                         setIsCreatingContainer(true);
                       }}
-                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
-                      title="Add topic"
+                      className="flex items-center gap-2 w-full min-w-0 p-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all text-left"
                     >
-                      <Plus size={16} />
+                      <Plus size={16} className="shrink-0" />
+                      <span className="truncate">Add topic</span>
                     </button>
                   </div>
                 )}
@@ -841,22 +1008,23 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
             </div>
               <div className="shrink-0 pt-3 mt-auto border-t border-gray-200/80 flex justify-start">
                 <UserMenu
+                  onSettingsClick={onSettingsClick}
                   onColorPaletteClick={onColorPaletteClick}
                   variant="sidebar"
                 />
               </div>
             </div>
           ) : (
-            <div className="p-2 flex flex-col items-center h-full min-h-0 pt-2">
+            <div className="flex flex-col items-center h-full min-h-0 pt-2 pb-2 px-0 w-full">
               <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all mb-1 shrink-0"
+                onClick={toggleSidebarCollapsed}
+                className="flex h-9 w-full items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors mb-1 shrink-0"
                 title="Expand sidebar"
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={16} />
               </button>
               <div
-                className={`flex-1 min-h-0 w-full flex flex-col items-center gap-2 py-1 ${
+                className={`flex-1 min-h-0 w-full flex flex-col items-stretch gap-1 py-1 ${
                   rootContainers.length > 0
                     ? 'overflow-y-auto hide-scrollbar'
                     : 'overflow-hidden'
@@ -868,22 +1036,33 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                     <button
                       key={container.id}
                       onClick={() => setSelectedContainerId(container.id)}
-                      className={`p-2 rounded transition-all ${
-                        isSelected ? 'bg-white shadow-sm' : 'hover:bg-white/60'
+                      type="button"
+                      aria-current={isSelected ? 'true' : undefined}
+                      aria-label={container.name}
+                      className={`relative flex h-9 w-full shrink-0 items-center justify-center rounded-md transition-colors ${
+                        isSelected
+                          ? 'bg-white shadow-sm font-medium'
+                          : 'hover:bg-white/60'
                       }`}
                       style={{
-                        borderLeft: isSelected ? `3px solid ${container.color}` : '3px solid transparent',
+                        borderLeft:
+                          isSelected ? `3px solid ${container.color}` : '3px solid transparent',
                       }}
                       title={container.name}
                     >
-                      <Zap size={18} style={{ color: container.color }} />
+                      <Zap
+                        size={16}
+                        style={{ color: container.color }}
+                        className="shrink-0 pointer-events-none"
+                        aria-hidden
+                      />
                     </button>
                   );
                 })}
                 <button
                   type="button"
                   onClick={() => {
-                    setSidebarCollapsed(false);
+                    expandSidebar();
                     const lastTopic =
                       rootContainers.length > 0
                         ? rootContainers[rootContainers.length - 1]
@@ -891,14 +1070,15 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                     setInsertAfterId(lastTopic?.id || null);
                     setIsCreatingContainer(true);
                   }}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all shrink-0"
+                  className="flex h-9 w-full shrink-0 items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                   title="Add topic"
                 >
-                  <Plus size={18} />
+                  <Plus size={16} className="shrink-0" />
                 </button>
               </div>
               <div className="shrink-0 pt-2 mt-auto w-full flex justify-center border-t border-gray-200/80">
                 <UserMenu
+                  onSettingsClick={onSettingsClick}
                   onColorPaletteClick={onColorPaletteClick}
                   variant="sidebar"
                 />
@@ -959,9 +1139,9 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
           </div>
         )}
 
-        {/* Right Content Area - fixed middle block */}
+        {/* Right Content Area: entries + optional persona panel */}
         <div
-          className={`relative z-0 flex-1 min-w-0 overflow-y-auto backdrop-blur-sm transition-shadow duration-200 ${
+          className={`relative z-0 flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row overflow-hidden backdrop-blur-sm transition-shadow duration-200 ${
             isResizing ? 'bg-white/50' : 'bg-white/40'
           }`}
           style={{
@@ -969,6 +1149,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
             boxShadow: isResizing ? 'inset 2px 0 8px -4px rgba(0,0,0,0.06)' : undefined,
           }}
         >
+          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
           {selectedContainer ? (
             <div className="p-4 sm:p-6">
               {entries.length === 0 && ungroupedItems.length === 0 ? (
@@ -1010,30 +1191,34 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {/* Main CTA: + Entry at the top */}
-                    <button
-                      type="button"
-                      onClick={() => handleCreateEntry(0)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-transparent transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 mb-1 hover:text-white"
-                      style={{
-                        backgroundColor: primaryLight,
-                        borderColor: 'transparent',
-                        color: primaryDark,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = primaryColor;
-                        e.currentTarget.style.borderColor = primaryColor;
-                        e.currentTarget.style.color = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = primaryLight;
-                        e.currentTarget.style.borderColor = 'transparent';
-                        e.currentTarget.style.color = primaryDark;
-                      }}
-                    >
-                      <Plus size={16} strokeWidth={2.5} />
-                      Entry
-                    </button>
+                    <div className="flex items-center justify-between gap-3 mb-1 min-w-0">
+                      <h2 className="text-lg font-semibold text-gray-900 truncate min-w-0 pr-2">
+                        {selectedContainer.name}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateEntry(0)}
+                        className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-transparent transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 hover:text-white"
+                        style={{
+                          backgroundColor: primaryLight,
+                          borderColor: 'transparent',
+                          color: primaryDark,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = primaryColor;
+                          e.currentTarget.style.borderColor = primaryColor;
+                          e.currentTarget.style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = primaryLight;
+                          e.currentTarget.style.borderColor = 'transparent';
+                          e.currentTarget.style.color = primaryDark;
+                        }}
+                      >
+                        <Plus size={16} strokeWidth={2.5} />
+                        Entry
+                      </button>
+                    </div>
                     {entries.map((entry, index) => {
                       const entryItems = itemsByEntry.get(entry.id) || [];
 
@@ -1059,6 +1244,10 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
                             activeDragId={activeId}
                             containerId={selectedContainer.id}
                             justCreated={entry.id === newlyCreatedEntryId}
+                            onPersonaSparkle={handlePersonaSparkle}
+                            personaRequestBusy={Boolean(
+                              personaPanel?.loading && personaPanel.entryId === entry.id
+                            )}
                           />
                         </React.Fragment>
                       );
@@ -1080,7 +1269,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full min-h-[200px]">
               <div className="text-center">
               <p className="text-gray-600 mb-2 text-lg">Select a topic to view its contents</p>
               <p className="text-sm text-gray-500">
@@ -1090,6 +1279,22 @@ export const PlanView: React.FC<PlanViewProps> = ({ onColorPaletteClick }) => {
               </p>
               </div>
             </div>
+          )}
+          </div>
+          {personaPanel && (
+            <PersonaResponsePanel
+              personaName={personaPanel.persona?.name ?? null}
+              loading={personaPanel.loading}
+              error={personaPanel.error}
+              response={personaPanel.response}
+              onClose={closePersonaPanel}
+              onRegenerate={handlePersonaRegenerate}
+              onInsert={handlePersonaInsert}
+              insertDisabled={!personaPanel.persona || !personaPanel.response.trim()}
+              onOpenSettings={onSettingsClick}
+              primaryColor={primaryColor}
+              primaryDark={primaryDark}
+            />
           )}
         </div>
       </div>

@@ -40,3 +40,10 @@ export interface AppState {
 }
 
 export type Mode = 'create' | 'prioritize' | 'capture';
+
+export interface Persona {
+  id: string;
+  name: string;
+  instructions: string;
+  createdAt: number;
+}

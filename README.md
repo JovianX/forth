@@ -40,6 +40,12 @@ npm run dev
 
 The app will be available at `http://localhost:5173`
 
+### Plan mode: AI personas (Ollama)
+
+- In **Settings**, add personas and set the Ollama **base URL** and **model** (defaults work with a local Ollama install).
+- **Development**: the Vite dev server proxies `/ollama` to `http://127.0.0.1:11434`, so the default base URL avoids browser CORS issues.
+- **Production / GitHub Pages**: the static app cannot reach Ollama on your machine unless you configure Ollama’s allowed origins, use a tunnel, or add your own API proxy.
+
 ### Build
 
 ```bash

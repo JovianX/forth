@@ -17,6 +17,7 @@ interface FilterMenuProps {
 }
 
 interface ModeSwitcherProps {
+  onSettingsClick?: () => void;
   onColorPaletteClick?: () => void;
   onAddContainerClick?: () => void;
   filterMenuProps?: FilterMenuProps;
@@ -1189,7 +1190,7 @@ const getIconSVG = (iconName: string | null) => {
 };
 
 export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ 
-  filterMenuProps, onColorPaletteClick, onAddContainerClick }) => {
+  filterMenuProps, onSettingsClick, onColorPaletteClick, onAddContainerClick }) => {
   const { mode, setMode } = useTaskContext();
   
   // Get selected font from localStorage
@@ -1413,6 +1414,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
             
             {mode !== 'capture' && (
               <UserMenu
+                onSettingsClick={onSettingsClick}
                 onColorPaletteClick={onColorPaletteClick}
                 variant="header"
               />

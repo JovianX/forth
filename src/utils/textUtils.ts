@@ -2,6 +2,14 @@
 export const stripHtml = (html: string): string =>
   String(html || '').replace(/<[^>]*>/g, '').trim();
 
+/** Escape text for safe insertion into HTML strings */
+export const escapeHtml = (text: string): string =>
+  String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 /** True if content has no meaningful text (empty or only whitespace/HTML) */
 export const isEmptyHtml = (content: string | undefined): boolean =>
   !content || stripHtml(content) === '';

@@ -1,17 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User as UserIcon, Palette, LogOut } from 'lucide-react';
+import { User as UserIcon, Palette, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getPalette } from '../utils/paletteUtils';
 
 export type UserMenuVariant = 'header' | 'sidebar';
 
 interface UserMenuProps {
+  onSettingsClick?: () => void;
   onColorPaletteClick?: () => void;
   variant?: UserMenuVariant;
   className?: string;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
+  onSettingsClick,
   onColorPaletteClick,
   variant = 'header',
   className = '',
@@ -135,6 +137,25 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               )}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onSettingsClick?.();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors"
+            style={{ color: primaryDark }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = primaryLight;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <Settings size={18} style={{ color: primaryColor }} />
+            <span>Settings</span>
+          </button>
 
           <button
             type="button"

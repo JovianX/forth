@@ -60,5 +60,13 @@ export default defineConfig({
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
     },
+    proxy: {
+      // Dev-only: avoid browser CORS when calling local Ollama. Use base URL `/ollama` in Settings (default in dev).
+      '/ollama': {
+        target: 'http://127.0.0.1:11434',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ollama/, ''),
+      },
+    },
   },
 })

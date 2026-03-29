@@ -36,6 +36,13 @@ interface EntryNodeProps {
   activeDragId?: string | null;
   containerId: string;
   justCreated?: boolean;
+  onPersonaSparkle?: (payload: {
+    entry: Task;
+    items: Task[];
+    containerId: string;
+  }) => void;
+  /** True while Ollama request for this entry is in flight */
+  personaRequestBusy?: boolean;
 }
 
 export const EntryNode: React.FC<EntryNodeProps> = ({
@@ -44,6 +51,8 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   activeDragId,
   containerId,
   justCreated = false,
+  onPersonaSparkle,
+  personaRequestBusy = false,
 }) => {
   const { tasks, deleteTask, updateTask, addTask, reorderTasksInEntry } = useTaskContext();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -226,8 +235,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   };
 
   const handleAiAction = () => {
-    // TODO: Wire to Ollama or other AI (e.g. summarize entry, suggest tasks)
-    window.alert('AI for this entry — connect to your Ollama/API when ready.');
+    onPersonaSparkle?.({ entry, items, containerId });
   };
 
   return (
@@ -284,11 +292,12 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
           <button
             type="button"
             onClick={handleAiAction}
-            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0"
-            title="AI"
-            aria-label="AI"
+            disabled={personaRequestBusy}
+            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+            title="Persona feedback (Ollama)"
+            aria-label="Persona feedback"
           >
-            <Sparkles size={18} />
+            <Sparkles size={18} className={personaRequestBusy ? 'animate-pulse' : undefined} />
           </button>
           <button
             type="button"
