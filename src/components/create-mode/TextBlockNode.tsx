@@ -116,7 +116,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         blockRef.current = node;
       }}
       style={style}
-      className={`flex items-center gap-2 rounded-md group transition-colors relative ${
+      className={`flex items-start gap-2 rounded-md group transition-colors relative ${
         compact ? 'py-0.5 px-3' : 'py-1.5 px-4 border-l-2 border-gray-300 bg-gray-50/20 hover:bg-gray-50/40'
       } ${
         isDragOver ? 'ring-2 ring-blue-400 ring-offset-1 bg-blue-50' : ''
@@ -140,14 +140,14 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         {...attributes}
         {...listeners}
         data-drag-handle
-        className="flex items-center justify-center w-6 h-6 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="flex items-center justify-center w-6 h-6 shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover:opacity-100 transition-opacity self-start mt-[calc(0.375rem+0.21em)] leading-[1.42]"
         aria-label="Drag to reorder"
         onClick={(e) => e.stopPropagation()}
       >
         <GripVertical size={16} />
       </div>
       {/* Spacer to align text with task title (same width as task checkbox) */}
-      <div className="w-5 h-5 flex-shrink-0" aria-hidden />
+      <div className="w-5 shrink-0 self-start mt-[calc(0.375rem+0.21em)]" aria-hidden />
       <div className="flex-1 min-w-0 pe-11">
         {isEditing ? (
           <div 
@@ -198,7 +198,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
         )}
       </div>
       {!task.entryId && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto pt-1.5 -mt-1.5">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto self-start mt-[calc(0.375rem+0.1em)] leading-[1.42]">
           <span>Created: {formatTimestamp(task.createdAt)}</span>
           {task.updatedAt && task.updatedAt !== task.createdAt && (
             <span>•</span>
@@ -213,7 +213,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           e.stopPropagation();
           deleteTask(task.id);
         }}
-        className="absolute end-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+        className="absolute end-0 top-[calc(0.375rem+0.71em)] -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all leading-[1.42]"
         aria-label="Delete text block"
       >
         <Trash2 size={16} />

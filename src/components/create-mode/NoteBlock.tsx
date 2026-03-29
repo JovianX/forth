@@ -170,7 +170,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/block:opacity-100 transition-opacity mt-1"
+            className="cursor-grab active:cursor-grabbing p-0.5 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/block:opacity-100 transition-opacity self-start mt-[calc(0.25rem+0.71em-0.4375em)] leading-[1.42]"
             aria-label="Drag to reorder"
           >
             <GripVertical size={14} />
@@ -186,7 +186,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
               e.stopPropagation();
               onDelete(block.id);
             }}
-            className="absolute end-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            className="absolute end-0 top-[calc(0.25rem+0.71em)] -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all leading-[1.42]"
             aria-label="Delete block"
           >
             <Trash2 size={14} />
