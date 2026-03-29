@@ -21,6 +21,27 @@ function normalizeBaseUrl(baseUrl: string): string {
   return t.endsWith('/') ? t.slice(0, -1) : t;
 }
 
+/**
+ * In dev, browser fetches to 127.0.0.1:11434 are blocked by CORS. The Vite proxy serves `/ollama` → Ollama.
+ * If the user saved a direct localhost URL, use the proxy path instead.
+ */
+export function resolveOllamaBaseUrlForBrowser(baseUrl: string): string {
+  const t = normalizeBaseUrl(baseUrl);
+  if (!t || t.startsWith('/')) return t;
+  if (!import.meta.env.DEV) return t;
+  try {
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : `http://${t}`;
+    const u = new URL(withScheme);
+    const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+    if ((u.hostname === '127.0.0.1' || u.hostname === 'localhost') && port === '11434') {
+      return '/ollama';
+    }
+  } catch {
+    /* keep t */
+  }
+  return t;
+}
+
 export function ollamaChatUrl(baseUrl: string): string {
   return `${normalizeBaseUrl(baseUrl)}/api/chat`;
 }
@@ -34,7 +55,7 @@ export function ollamaTagsUrl(baseUrl: string): string {
  */
 export async function ollamaChat(options: OllamaChatOptions): Promise<string> {
   const { baseUrl, model, messages, signal } = options;
-  const url = ollamaChatUrl(baseUrl);
+  const url = ollamaChatUrl(resolveOllamaBaseUrlForBrowser(baseUrl));
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -69,7 +90,7 @@ export async function ollamaChat(options: OllamaChatOptions): Promise<string> {
 }
 
 export async function ollamaListTags(baseUrl: string, signal?: AbortSignal): Promise<boolean> {
-  const url = ollamaTagsUrl(baseUrl);
+  const url = ollamaTagsUrl(resolveOllamaBaseUrlForBrowser(baseUrl));
   const res = await fetch(url, { method: 'GET', signal });
   return res.ok;
 }

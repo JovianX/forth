@@ -40,9 +40,10 @@ export const OllamaSettings: React.FC = () => {
     <div className="px-4 py-3 border-t border-gray-200 space-y-3">
       <h3 className="text-sm font-semibold text-gray-900">Ollama</h3>
       <p className="text-xs text-gray-500 leading-relaxed">
-        Local AI server. In dev, default <code className="text-gray-700 bg-gray-100 px-1 rounded">/ollama</code> uses the
-        Vite proxy. Otherwise use <code className="text-gray-700 bg-gray-100 px-1 rounded">http://127.0.0.1:11434</code> if
-        your browser can reach it (CORS).
+        Local AI server. In dev, <code className="text-gray-700 bg-gray-100 px-1 rounded">/ollama</code> is proxied to Ollama
+        (avoids CORS). Direct <code className="text-gray-700 bg-gray-100 px-1 rounded">http://127.0.0.1:11434</code> is
+        rewritten to that proxy while developing. For a static/production build, use Ollama&apos;s{' '}
+        <code className="text-gray-700 bg-gray-100 px-1 rounded">OLLAMA_ORIGINS</code> or your own proxy.
       </p>
       <div className="space-y-1.5">
         <label className="block text-xs font-medium text-gray-600" htmlFor="ollama-base-url">
