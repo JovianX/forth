@@ -28,6 +28,8 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   );
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
+  /** Latest HTML from the editor; avoids stale `content` on blur before React state commits. */
+  const contentRef = useRef(task.content || '');
 
   useEffect(() => {
     setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
@@ -60,7 +62,9 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
 
 
   useEffect(() => {
-    setContent(task.content || '');
+    const next = task.content || '';
+    setContent(next);
+    contentRef.current = next;
   }, [task.content]);
 
   const isNewlyCreated = startInEditMode || (Date.now() - task.createdAt < 3000);
@@ -76,11 +80,19 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     }
   }, [isEditing, isNewlyCreated]);
 
+  const handleContentChange = (value: string) => {
+    contentRef.current = value;
+    setContent(value);
+  };
+
   const handleSave = () => {
-    if (content !== (task.content || '')) {
-      updateTask(task.id, { content: content });
+    const latest = contentRef.current;
+    if (latest !== (task.content || '')) {
+      updateTask(task.id, { content: latest });
     } else {
-      setContent(task.content || '');
+      const next = task.content || '';
+      setContent(next);
+      contentRef.current = next;
     }
     setIsEditing(false);
   };
@@ -103,7 +115,9 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   };
 
   const handleCancel = () => {
-    setContent(task.content || '');
+    const next = task.content || '';
+    contentRef.current = next;
+    setContent(next);
     setIsEditing(false);
   };
 
@@ -163,7 +177,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
             <div className="relative py-0.5 px-1 min-w-0">
               <WysiwygEditor
                 value={content}
-                onChange={setContent}
+                onChange={handleContentChange}
                 onBlur={handleSave}
                 onSave={handleSave}
                 onBackspaceWhenEmpty={() => deleteTask(task.id)}

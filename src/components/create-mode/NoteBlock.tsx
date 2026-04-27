@@ -23,6 +23,10 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(block.type === 'text' ? (block.content || '') : (block.taskTitle || ''));
   const inputRef = useRef<HTMLInputElement>(null);
+  /** Latest draft; avoids stale `text` on blur (especially for Wysiwyg). */
+  const textRef = useRef(
+    block.type === 'text' ? (block.content || '') : (block.taskTitle || '')
+  );
 
   const {
     attributes,
@@ -51,26 +55,35 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
 
   useEffect(() => {
     if (block.type === 'text') {
-      setText(block.content || '');
+      const v = block.content || '';
+      setText(v);
+      textRef.current = v;
     } else {
-      setText(block.taskTitle || '');
+      const v = block.taskTitle || '';
+      setText(v);
+      textRef.current = v;
     }
   }, [block.content, block.taskTitle, block.type]);
 
   const handleSave = () => {
+    const latest = textRef.current;
     if (block.type === 'text') {
-      onUpdate(block.id, { content: text });
+      onUpdate(block.id, { content: latest });
     } else {
-      onUpdate(block.id, { taskTitle: text });
+      onUpdate(block.id, { taskTitle: latest });
     }
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     if (block.type === 'text') {
-      setText(block.content || '');
+      const v = block.content || '';
+      textRef.current = v;
+      setText(v);
     } else {
-      setText(block.taskTitle || '');
+      const v = block.taskTitle || '';
+      textRef.current = v;
+      setText(v);
     }
     setIsEditing(false);
   };
@@ -109,7 +122,11 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
             type="text"
             dir="auto"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              textRef.current = v;
+              setText(v);
+            }}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
             className={`flex-1 px-1 py-0.5 bg-transparent border-none outline-none focus:outline-none ${
@@ -158,7 +175,10 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
       {isEditing ? (
         <WysiwygEditor
           value={text}
-          onChange={setText}
+          onChange={(v) => {
+            textRef.current = v;
+            setText(v);
+          }}
           onBlur={handleSave}
           onSave={handleSave}
           placeholder="Write text..."

@@ -21,6 +21,7 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   priority,
 }) => {
   const [content, setContent] = useState('');
+  const contentRef = useRef('');
   const [showShortcutHint, setShowShortcutHint] = useState(true);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -33,10 +34,17 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
   const container = containers.find((c) => c.id === containerId);
   const containerColor = container?.color || '#3B82F6';
 
+  const handleContentChange = (value: string) => {
+    contentRef.current = value;
+    setContent(value);
+  };
+
   const handleSubmit = () => {
-    if (!isEmptyHtml(content)) {
-      addTask('', containerId, priority, 'text-block', content);
+    const latest = contentRef.current;
+    if (!isEmptyHtml(latest)) {
+      addTask('', containerId, priority, 'text-block', latest);
       setContent('');
+      contentRef.current = '';
       onCreated?.();
     } else {
       handleCancel();
@@ -45,12 +53,14 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
 
   const handleCancel = () => {
     setContent('');
+    contentRef.current = '';
     onCancel?.();
   };
 
   useEffect(() => {
     if (isCreating) {
       setContent('');
+      contentRef.current = '';
     }
   }, [isCreating]);
 
@@ -100,12 +110,12 @@ export const CreateTextBlock: React.FC<CreateTextBlockProps> = ({
         <div className="flex flex-col relative">
           <WysiwygEditor
             value={content}
-            onChange={setContent}
+            onChange={handleContentChange}
             onSave={handleSubmit}
             onBlur={() => {
-              if (isEmptyHtml(content)) {
+              if (isEmptyHtml(contentRef.current)) {
                 setTimeout(() => {
-                  if (isEmptyHtml(content)) handleCancel();
+                  if (isEmptyHtml(contentRef.current)) handleCancel();
                 }, 200);
               } else {
                 handleSubmit();
