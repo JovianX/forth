@@ -2,25 +2,13 @@ import React from 'react';
 import { ClipboardList, ListChecks, Plus } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
 import { UserMenu } from './UserMenu';
-import { Mode, Container } from '../types';
+import { Mode } from '../types';
 import { getPalette } from '../utils/paletteUtils';
-import { FilterMenu } from './execution-mode/FilterMenu';
-
-interface FilterMenuProps {
-  containers: Container[];
-  selectedContainers: Set<string> | null;
-  showCompleted: boolean;
-  onToggleContainer: (containerId: string, event?: React.MouseEvent) => void;
-  onSelectAll: () => void;
-  onShowCompletedChange: (show: boolean) => void;
-  onReorderContainers?: (activeId: string, overId: string | null) => void;
-}
 
 interface ModeSwitcherProps {
   onSettingsClick?: () => void;
   onColorPaletteClick?: () => void;
   onAddContainerClick?: () => void;
-  filterMenuProps?: FilterMenuProps;
 }
 
 // Icon components
@@ -1190,7 +1178,7 @@ const getIconSVG = (iconName: string | null) => {
 };
 
 export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({ 
-  filterMenuProps, onSettingsClick, onColorPaletteClick, onAddContainerClick }) => {
+  onSettingsClick, onColorPaletteClick, onAddContainerClick }) => {
   const { mode, setMode } = useTaskContext();
   
   // Get selected font from localStorage
@@ -1332,11 +1320,6 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Filter Menu - only show in Prioritize mode */}
-            {filterMenuProps && (
-              <FilterMenu {...filterMenuProps} />
-            )}
-            
             {/* Add Container Button - only show in Create mode */}
             {onAddContainerClick && (
               <button
@@ -1412,7 +1395,7 @@ export const ModeSwitcher: React.FC<ModeSwitcherProps> = ({
               ))}
             </div>
             
-            {mode !== 'capture' && (
+            {mode !== 'capture' && mode !== 'prioritize' && (
               <UserMenu
                 onSettingsClick={onSettingsClick}
                 onColorPaletteClick={onColorPaletteClick}

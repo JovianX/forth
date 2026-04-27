@@ -11,85 +11,78 @@ import {
   getContainerColorWithOpacity,
 } from '../../utils/colorUtils';
 
-interface TaskItemProps {
+interface TaskItemContentProps {
   task: Task;
   containers: Container[];
   onToggle: () => void;
-  justDropped?: boolean;
+  dragHandle: React.ReactNode;
+  /** When true, drag handle stays visible (drag preview). */
+  gripAlwaysVisible?: boolean;
+  rootRef?: React.Ref<HTMLDivElement>;
+  rootStyle?: React.CSSProperties;
+  rootClassName?: string;
+  isDragging?: boolean;
+  /** Extra classes on outer card (e.g. overlay shadow). */
+  overlayClassName?: string;
+  /** Skip hover border / lift (e.g. drag preview). */
+  disableHoverLift?: boolean;
 }
 
-export const TaskItem: React.FC<TaskItemProps> = ({
+const TaskItemContent: React.FC<TaskItemContentProps> = ({
   task,
   containers,
   onToggle,
-  justDropped = false,
+  dragHandle,
+  gripAlwaysVisible = false,
+  rootRef,
+  rootStyle,
+  rootClassName = '',
+  isDragging = false,
+  overlayClassName = '',
+  disableHoverLift = false,
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task.id,
-    animateLayoutChanges: () => false, // Prevents weird animation when dropping at first (or any) position
-  });
-
   const containerPath = getContainerPath(task.containerId, containers);
   const containerName = containerPath.length > 0 ? containerPath[containerPath.length - 1] : 'Unknown';
   const container = containers.find((c) => c.id === task.containerId);
-  
-  // Use container color or default neutral color
+
   const containerColor = container?.color || '#6B7280';
   const containerLightColor = getContainerLightColor(containerColor);
   const containerBorderColor = getContainerColorWithOpacity(containerColor, 0.3);
-  
+
   const isNote = task.type === 'note';
   const isTextBlock = task.type === 'text-block';
 
-  const style = {
-    transform: justDropped ? undefined : CSS.Transform.toString(transform),
-    transition: isDragging || justDropped ? 'none' : transition,
-    opacity: isDragging ? 0.5 : 1,
-    borderColor: containerBorderColor,
-  };
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={rootRef}
+      style={rootStyle}
       className={`
         flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-4 border-2 rounded-xl group transition-all
-        ${task.completed
-          ? 'shadow-sm bg-white/60'
-          : 'bg-white shadow-md hover:shadow-lg'
-        }
-        ${isDragging ? 'opacity-50' : ''}
+        ${task.completed ? 'shadow-sm bg-white/60' : 'bg-white shadow-md hover:shadow-lg'}
+        ${rootClassName}
+        ${overlayClassName}
       `}
       onMouseEnter={(e) => {
-        if (!task.completed && !isDragging) {
-          e.currentTarget.style.borderColor = containerColor;
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }
+        if (disableHoverLift || task.completed || isDragging) return;
+        e.currentTarget.style.borderColor = containerColor;
       }}
       onMouseLeave={(e) => {
+        if (disableHoverLift) return;
         if (!task.completed) {
           e.currentTarget.style.borderColor = containerBorderColor;
-          e.currentTarget.style.transform = '';
         }
       }}
     >
       <div className="flex items-start gap-3 flex-1 min-w-0 w-full sm:w-auto group/item">
-        {/* Drag + checkbox in a one-line band so checkbox center aligns with first line of title */}
         <div className="min-h-6 flex items-center gap-3 flex-shrink-0">
           <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/item:opacity-100 transition-opacity"
-            aria-label="Drag to reorder"
+            className={`p-1 text-gray-400 touch-none ${
+              gripAlwaysVisible
+                ? 'opacity-100 cursor-grabbing'
+                : 'cursor-grab active:cursor-grabbing hover:text-gray-600 opacity-0 group-hover/item:opacity-100 transition-opacity'
+            }`}
           >
-            <GripVertical size={20} />
+            {dragHandle}
           </div>
           {isNote ? (
             <FileText size={20} className="flex-shrink-0" style={{ color: containerColor }} />
@@ -105,9 +98,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <div
                 className={`
                   text-base sm:text-lg leading-6
-                  ${task.completed && !isNote && !isTextBlock
-                    ? 'line-through text-gray-400'
-                    : 'text-gray-900'
+                  ${
+                    task.completed && !isNote && !isTextBlock
+                      ? 'line-through text-gray-400'
+                      : 'text-gray-900'
                   }
                 `}
               >
@@ -115,7 +109,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               </div>
             )}
             {!isNote && !isTextBlock && task.isQuickTask && (
-              <div 
+              <div
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border"
                 style={{
                   backgroundColor: containerLightColor,
@@ -139,16 +133,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 <div key={block.id} className="flex items-start gap-2">
                   {block.type === 'task' ? (
                     <>
-                      <div className={`w-3 h-3 border-2 rounded mt-1 flex-shrink-0 ${
-                        block.completed ? 'bg-gray-400 border-gray-400' : 'border-gray-300'
-                      }`}>
+                      <div
+                        className={`w-3 h-3 border-2 rounded mt-1 flex-shrink-0 ${
+                          block.completed ? 'bg-gray-400 border-gray-400' : 'border-gray-300'
+                        }`}
+                      >
                         {block.completed && (
                           <svg className="w-full h-full text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         )}
                       </div>
-                      <span className={`min-w-0 flex-1 break-words ${block.completed ? 'line-through text-gray-500' : ''}`}>
+                      <span
+                        className={`min-w-0 flex-1 break-words ${block.completed ? 'line-through text-gray-500' : ''}`}
+                      >
                         <LinkifyText text={block.taskTitle || 'Untitled task'} />
                       </span>
                     </>
@@ -188,5 +190,88 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+interface TaskItemProps {
+  task: Task;
+  containers: Container[];
+  onToggle: () => void;
+  justDropped?: boolean;
+}
+
+export const TaskItem: React.FC<TaskItemProps> = ({ task, containers, onToggle, justDropped = false }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    animateLayoutChanges: () => false,
+  });
+
+  const container = containers.find((c) => c.id === task.containerId);
+  const containerColor = container?.color || '#6B7280';
+  const containerBorderColor = getContainerColorWithOpacity(containerColor, 0.3);
+
+  const hideSourceWhileDragging = isDragging;
+  const style: React.CSSProperties = {
+    transform: hideSourceWhileDragging || justDropped ? undefined : CSS.Transform.toString(transform),
+    transition: isDragging || justDropped ? 'none' : transition,
+    opacity: hideSourceWhileDragging ? 0 : 1,
+    borderColor: containerBorderColor,
+    pointerEvents: hideSourceWhileDragging ? 'none' : undefined,
+  };
+
+  return (
+    <TaskItemContent
+      task={task}
+      containers={containers}
+      onToggle={onToggle}
+      rootRef={setNodeRef}
+      rootStyle={style}
+      isDragging={isDragging}
+      dragHandle={
+        <div
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          className="touch-none"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical size={20} />
+        </div>
+      }
+    />
+  );
+};
+
+/** Presentational clone for `DragOverlay` — must not use `useSortable` (duplicate ids break overlay / cursor sync). */
+export const TaskItemDragOverlay: React.FC<{
+  task: Task;
+  containers: Container[];
+}> = ({ task, containers }) => {
+  const container = containers.find((c) => c.id === task.containerId);
+  const containerColor = container?.color || '#6B7280';
+  const containerBorderColor = getContainerColorWithOpacity(containerColor, 0.3);
+
+  return (
+    <TaskItemContent
+      task={task}
+      containers={containers}
+      onToggle={() => {}}
+      gripAlwaysVisible
+      disableHoverLift
+      overlayClassName="cursor-grabbing"
+      rootStyle={{
+        borderColor: containerBorderColor,
+        touchAction: 'none',
+      }}
+      dragHandle={<GripVertical size={20} />}
+    />
   );
 };

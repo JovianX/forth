@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Palette } from 'lucide-react';
 import { ModeSwitcher } from './components/ModeSwitcher';
 import { ContainerTree } from './components/create-mode/ContainerTree';
-import { TaskList } from './components/execution-mode/TaskList';
+import { PrioritizeView } from './components/execution-mode/PrioritizeView';
 import { PlanView } from './components/plan-mode/PlanView';
 import { ColorPalettePreview } from './components/ColorPalettePreview';
 import { Login } from './components/Login';
@@ -22,7 +22,7 @@ interface FilterState {
 }
 
 function App() {
-  const { mode, containers, loading: taskLoading } = useTaskContext();
+  const { mode, loading: taskLoading } = useTaskContext();
   const { user, loading: authLoading } = useAuth();
   
   // Load filter state from localStorage
@@ -236,18 +236,6 @@ function App() {
         onSettingsClick={() => setShowSettings(true)}
         onColorPaletteClick={() => setShowColorPreview(true)}
         onAddContainerClick={mode === 'create' ? handleAddContainerClick : undefined}
-        filterMenuProps={
-          mode === 'prioritize'
-            ? {
-                containers,
-                selectedContainers,
-                showCompleted,
-                onToggleContainer: handleToggleContainer,
-                onSelectAll: handleSelectAll,
-                onShowCompletedChange: setShowCompleted,
-              }
-            : undefined
-        }
       />
       <main className="flex-1 overflow-hidden w-full">
         <div className="transition-opacity duration-300 h-full">
@@ -256,11 +244,14 @@ function App() {
               <ContainerTree onAddContainerRef={(fn) => { addContainerRef.current = fn; }} />
             </div>
           ) : mode === 'prioritize' ? (
-            <div className="h-full overflow-y-auto">
-              <TaskList
+            <div className="h-full min-h-0 overflow-hidden">
+              <PrioritizeView
+                onSettingsClick={() => setShowSettings(true)}
+                onColorPaletteClick={() => setShowColorPreview(true)}
                 selectedContainers={selectedContainers}
                 showCompleted={showCompleted}
-                onSelectedContainersChange={setSelectedContainers}
+                onToggleContainer={handleToggleContainer}
+                onSelectAll={handleSelectAll}
                 onShowCompletedChange={setShowCompleted}
               />
             </div>

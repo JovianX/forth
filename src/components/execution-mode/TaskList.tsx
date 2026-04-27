@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DndContext,
   closestCenter,
@@ -15,20 +16,17 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { TaskItem } from './TaskItem';
+import { TaskItem, TaskItemDragOverlay } from './TaskItem';
 import { useTaskContext } from '../../context/TaskContext';
 
 interface TaskListProps {
   selectedContainers: Set<string> | null;
   showCompleted: boolean;
-  onSelectedContainersChange: (containers: Set<string> | null) => void;
-  onShowCompletedChange: (show: boolean) => void;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({
   selectedContainers,
   showCompleted,
-  onShowCompletedChange: _onShowCompletedChange,
 }) => {
   const { tasks, containers, toggleTaskCompletion, reorderTasksAmong } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -182,15 +180,14 @@ export const TaskList: React.FC<TaskListProps> = ({
               ))}
             </div>
           </SortableContext>
-          <DragOverlay>
-            {activeTask ? (
-              <TaskItem
-                task={activeTask}
-                containers={containers}
-                onToggle={() => {}}
-              />
-            ) : null}
-          </DragOverlay>
+          {createPortal(
+            <DragOverlay zIndex={10_000}>
+              {activeTask ? (
+                <TaskItemDragOverlay task={activeTask} containers={containers} />
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
       )}
     </div>
