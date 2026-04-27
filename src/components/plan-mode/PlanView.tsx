@@ -42,12 +42,15 @@ import {
   loadDefaultPersonaId,
   loadOllamaBaseUrl,
   loadOllamaModel,
+  loadPersonaAiBackend,
+  loadWebLlmModel,
 } from '../../utils/personaStorage';
 import {
   ollamaChat,
   buildPersonaSystemMessage,
   buildPersonaUserMessage,
 } from '../../utils/ollamaClient';
+import { webLlmPersonaChat } from '../../utils/webLlmPersonaChat';
 import { escapeHtml } from '../../utils/textUtils';
 
 interface PlanViewProps {
@@ -68,6 +71,8 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
     persona: Persona | null;
     serializedEntry: string;
     loading: boolean;
+    /** WebLLM model download / init status */
+    loadingDetail?: string | null;
     response: string;
     error: string | null;
   };
@@ -209,33 +214,45 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
     return map;
   }, [tasks, selectedContainerId, entries]);
 
-  const runOllamaForPersona = useCallback(
-    async (entryId: string, serializedEntry: string, persona: Persona) => {
-      try {
+  const runPersonaAi = useCallback(async (entryId: string, serializedEntry: string, persona: Persona) => {
+    const messages = [
+      { role: 'system' as const, content: buildPersonaSystemMessage(persona.instructions) },
+      { role: 'user' as const, content: buildPersonaUserMessage(serializedEntry) },
+    ];
+    try {
+      const backend = loadPersonaAiBackend();
+      let content: string;
+      if (backend === 'webllm') {
+        const modelId = loadWebLlmModel();
+        content = await webLlmPersonaChat({
+          modelId,
+          messages,
+          onProgress: (report) => {
+            setPersonaPanel((prev) => {
+              if (!prev || prev.entryId !== entryId) return prev;
+              const detail =
+                report.text?.trim() || `Loading model… ${Math.round(report.progress * 100)}%`;
+              return { ...prev, loadingDetail: detail };
+            });
+          },
+        });
+      } else {
         const baseUrl = loadOllamaBaseUrl();
         const model = loadOllamaModel();
-        const content = await ollamaChat({
-          baseUrl,
-          model,
-          messages: [
-            { role: 'system', content: buildPersonaSystemMessage(persona.instructions) },
-            { role: 'user', content: buildPersonaUserMessage(serializedEntry) },
-          ],
-        });
-        setPersonaPanel((prev) => {
-          if (!prev || prev.entryId !== entryId) return prev;
-          return { ...prev, loading: false, response: content, error: null };
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Request failed';
-        setPersonaPanel((prev) => {
-          if (!prev || prev.entryId !== entryId) return prev;
-          return { ...prev, loading: false, error: msg, response: '' };
-        });
+        content = await ollamaChat({ baseUrl, model, messages });
       }
-    },
-    []
-  );
+      setPersonaPanel((prev) => {
+        if (!prev || prev.entryId !== entryId) return prev;
+        return { ...prev, loading: false, loadingDetail: null, response: content, error: null };
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Request failed';
+      setPersonaPanel((prev) => {
+        if (!prev || prev.entryId !== entryId) return prev;
+        return { ...prev, loading: false, loadingDetail: null, error: msg, response: '' };
+      });
+    }
+  }, []);
 
   const handlePersonaSparkle = useCallback(
     async ({
@@ -256,6 +273,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
           persona: null,
           serializedEntry: fullText,
           loading: false,
+          loadingDetail: null,
           response: '',
           error:
             'Add some text, tasks, or notes to this entry before asking for feedback.',
@@ -272,6 +290,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
           persona: null,
           serializedEntry: fullText,
           loading: false,
+          loadingDetail: null,
           response: '',
           error: 'Create a persona in Settings first (sparkles uses your default persona).',
         });
@@ -283,20 +302,23 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
         persona,
         serializedEntry: fullText,
         loading: true,
+        loadingDetail: null,
         response: '',
         error: null,
       });
-      await runOllamaForPersona(entry.id, fullText, persona);
+      await runPersonaAi(entry.id, fullText, persona);
     },
-    [runOllamaForPersona]
+    [runPersonaAi]
   );
 
   const handlePersonaRegenerate = useCallback(() => {
     if (!personaPanel?.persona) return;
     const { entryId, serializedEntry, persona } = personaPanel;
-    setPersonaPanel((p) => (p ? { ...p, loading: true, error: null, response: '' } : p));
-    void runOllamaForPersona(entryId, serializedEntry, persona);
-  }, [personaPanel, runOllamaForPersona]);
+    setPersonaPanel((p) =>
+      p ? { ...p, loading: true, loadingDetail: null, error: null, response: '' } : p
+    );
+    void runPersonaAi(entryId, serializedEntry, persona);
+  }, [personaPanel, runPersonaAi]);
 
   const handlePersonaInsert = useCallback(() => {
     if (!personaPanel?.persona || !personaPanel.response.trim()) return;
@@ -1288,6 +1310,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
             <PersonaResponsePanel
               personaName={personaPanel.persona?.name ?? null}
               loading={personaPanel.loading}
+              loadingDetail={personaPanel.loadingDetail ?? null}
               error={personaPanel.error}
               response={personaPanel.response}
               onClose={closePersonaPanel}

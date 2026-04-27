@@ -4,6 +4,8 @@ import { X, RefreshCw, FileDown } from 'lucide-react';
 export interface PersonaResponsePanelProps {
   personaName: string | null;
   loading: boolean;
+  /** Extra line while loading (e.g. WebLLM download progress) */
+  loadingDetail?: string | null;
   error: string | null;
   response: string;
   onClose: () => void;
@@ -18,6 +20,7 @@ export interface PersonaResponsePanelProps {
 export const PersonaResponsePanel: React.FC<PersonaResponsePanelProps> = ({
   personaName,
   loading,
+  loadingDetail,
   error,
   response,
   onClose,
@@ -67,6 +70,11 @@ export const PersonaResponsePanel: React.FC<PersonaResponsePanelProps> = ({
               aria-hidden
             />
             <p className="text-xs text-center">Reading your entry…</p>
+            {loadingDetail ? (
+              <p className="text-[11px] text-center text-gray-400 max-w-[280px] leading-snug line-clamp-4">
+                {loadingDetail}
+              </p>
+            ) : null}
           </div>
         )}
         {!loading && error && (

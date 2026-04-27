@@ -41,7 +41,7 @@ interface EntryNodeProps {
     items: Task[];
     containerId: string;
   }) => void;
-  /** True while Ollama request for this entry is in flight */
+  /** True while persona AI request for this entry is in flight */
   personaRequestBusy?: boolean;
 }
 
@@ -296,7 +296,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
             onClick={handleAiAction}
             disabled={personaRequestBusy}
             className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
-            title="Persona feedback (Ollama)"
+            title="Persona feedback (AI)"
             aria-label="Persona feedback"
           >
             <Sparkles size={18} className={personaRequestBusy ? 'animate-pulse' : undefined} />

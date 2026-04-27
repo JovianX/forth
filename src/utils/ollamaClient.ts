@@ -1,6 +1,6 @@
 const APP_SYSTEM_PREFIX = `You are responding inside a personal journaling app. The user shared journal text below.
 Rules: Be supportive and clear. Do not provide medical or clinical diagnoses. Do not claim to be human.
-Keep a reasonable length (roughly under 400 words unless the user content clearly needs more).
+Keep a reasonable length.
 `;
 
 export interface OllamaChatMessage {

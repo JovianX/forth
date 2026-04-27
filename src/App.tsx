@@ -11,6 +11,8 @@ import { useAuth } from './context/AuthContext';
 import { getPalette } from './utils/paletteUtils';
 import { PersonasSettings } from './components/settings/PersonasSettings';
 import { OllamaSettings } from './components/settings/OllamaSettings';
+import { loadPersonaAiBackend, loadWebLlmModel } from './utils/personaStorage';
+import { preloadWebLlmEngine } from './utils/webLlmPersonaChat';
 
 const FILTER_STORAGE_KEY = 'forth-filter-state';
 
@@ -98,6 +100,19 @@ function App() {
       setShowColorPreview(true);
     }
   }, []);
+
+  // When WebLLM is selected, start loading the model in the background after the shell is up.
+  useEffect(() => {
+    if (authLoading || taskLoading || !user) return;
+    if (loadPersonaAiBackend() !== 'webllm') return;
+    const modelId = loadWebLlmModel();
+    const t = window.setTimeout(() => {
+      void preloadWebLlmEngine(modelId).catch((e) => {
+        console.warn('[WebLLM] Background preload failed (will retry on sparkles):', e);
+      });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [user, authLoading, taskLoading]);
 
   if (showColorPreview) {
     return <ColorPalettePreview onClose={() => setShowColorPreview(false)} />;

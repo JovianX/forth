@@ -489,6 +489,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       toolbar: [
         ['bold', 'italic', 'underline', 'strike'],
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ indent: '-1' }, { indent: '+1' }],
         [{ direction: 'rtl' }],
         ['clean']
       ],
@@ -524,6 +525,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   const formats = [
     'bold', 'italic', 'underline', 'strike',
     'list',
+    'indent',
     'direction',
     'align',
   ];
@@ -614,36 +616,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor h3 {
           font-size: 1.1em;
         }
-        /* Match display mode list styling exactly - must be identical for seamless edit/read switching */
-        .${editorIdRef.current} .ql-editor ul,
-        .${editorIdRef.current} .ql-editor ol {
-          margin: 0.5em 0;
-          padding-inline-start: 0;
-          list-style-type: none;
-        }
-        .${editorIdRef.current} .ql-editor li {
-          margin: 0.25em 0;
-          padding-inline-start: 1.5em;
-          list-style: none;
-          position: relative;
-        }
-        /* Both ul and ol render as bullets; center bullet vertically with first line */
-        .${editorIdRef.current} .ql-editor ul li::before,
-        .${editorIdRef.current} .ql-editor ol li::before {
-          content: "\\2022" !important;
-          position: absolute !important;
-          inset-inline-start: 0 !important;
-          color: #374151 !important;
-          font-size: 1.4em !important;
-          font-weight: bold !important;
-          line-height: 1 !important;
-          top: 0 !important;
-        }
-        /* Hide Quill's .ql-ui - we use li::before for consistent edit/read appearance */
-        .${editorIdRef.current} .ql-editor li[data-list=bullet] > .ql-ui::before,
-        .${editorIdRef.current} .ql-editor li[data-list=ordered] > .ql-ui::before {
-          content: none !important;
-        }
+        /* List markers & nesting: shared with .wysiwyg-content in index.css */
         .${editorIdRef.current} .ql-editor strong {
           font-weight: 600;
         }

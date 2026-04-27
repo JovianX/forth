@@ -4,9 +4,16 @@ const PERSONAS_KEY = 'forth-personas';
 const DEFAULT_PERSONA_ID_KEY = 'forth-persona-default-id';
 const OLLAMA_BASE_URL_KEY = 'forth-ollama-base-url';
 const OLLAMA_MODEL_KEY = 'forth-ollama-model';
+const PERSONA_AI_BACKEND_KEY = 'forth-persona-ai-backend';
+const WEBLLM_MODEL_KEY = 'forth-webllm-model';
+
+export type PersonaAiBackend = 'ollama' | 'webllm';
 
 /** Default model label; user should match an installed Ollama model. */
 export const DEFAULT_OLLAMA_MODEL = 'llama3.2';
+
+/** Default WebLLM prebuilt model id (see @mlc-ai/web-llm prebuiltAppConfig). */
+export const DEFAULT_WEBLLM_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 
 export function defaultOllamaBaseUrl(): string {
   return import.meta.env.DEV ? '/ollama' : 'http://127.0.0.1:11434';
@@ -91,5 +98,41 @@ export function saveOllamaModel(model: string): void {
     localStorage.setItem(OLLAMA_MODEL_KEY, model.trim());
   } catch (e) {
     console.error('Error saving Ollama model:', e);
+  }
+}
+
+export function loadPersonaAiBackend(): PersonaAiBackend {
+  try {
+    const v = localStorage.getItem(PERSONA_AI_BACKEND_KEY);
+    if (v === 'webllm' || v === 'ollama') return v;
+  } catch {
+    /* ignore */
+  }
+  return 'ollama';
+}
+
+export function savePersonaAiBackend(backend: PersonaAiBackend): void {
+  try {
+    localStorage.setItem(PERSONA_AI_BACKEND_KEY, backend);
+  } catch (e) {
+    console.error('Error saving persona AI backend:', e);
+  }
+}
+
+export function loadWebLlmModel(): string {
+  try {
+    const v = localStorage.getItem(WEBLLM_MODEL_KEY);
+    if (v != null && v.trim() !== '') return v.trim();
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_WEBLLM_MODEL;
+}
+
+export function saveWebLlmModel(modelId: string): void {
+  try {
+    localStorage.setItem(WEBLLM_MODEL_KEY, modelId.trim());
+  } catch (e) {
+    console.error('Error saving WebLLM model:', e);
   }
 }

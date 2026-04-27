@@ -76,28 +76,40 @@ body {
   font-size: 1.1em;
 }
 
-/* Match Quill's exact list styling using pseudo-elements */
-/* Hide Quill's .ql-ui in display mode - we use our own bullets; Quill's UI can add unwanted gap */
-.wysiwyg-content .ql-ui {
+/*
+ * Lists: Quill uses a flat <ol> with li[data-list=bullet|ordered] and .ql-indent-N for nesting.
+ * We draw markers on li::before (saved HTML often has no .ql-ui), matching Quill snow counters.
+ */
+.wysiwyg-content:not(:has(.ql-editor)) {
+  counter-reset: list-0 list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+}
+
+.wysiwyg-content .ql-ui,
+.wysiwyg-editor .ql-editor .ql-ui {
   display: none !important;
 }
 
-.wysiwyg-content ul, .wysiwyg-content ol {
+.wysiwyg-content ul,
+.wysiwyg-content ol,
+.wysiwyg-editor .ql-editor ul,
+.wysiwyg-editor .ql-editor ol {
   margin: 0.5em 0;
-  padding-inline-start: 0;
+  padding-inline-start: 1.5em;
   list-style-type: none;
 }
 
-.wysiwyg-content li {
+.wysiwyg-content li,
+.wysiwyg-editor .ql-editor li {
   margin: 0.25em 0;
   padding-inline-start: 1.5em;
   list-style: none;
   position: relative;
 }
 
-/* Bullet lists - use absolute positioning; center bullet vertically with first line of text */
-.wysiwyg-content ul li::before,
-.wysiwyg-content ol li::before {
+.wysiwyg-content li[data-list=bullet]::before,
+.wysiwyg-editor .ql-editor li[data-list=bullet]::before,
+.wysiwyg-content ul > li:not([data-list])::before,
+.wysiwyg-editor .ql-editor ul > li:not([data-list])::before {
   content: "\2022";
   position: absolute;
   inset-inline-start: 0;
@@ -105,11 +117,364 @@ body {
   font-size: 1.4em;
   font-weight: bold;
   line-height: 1;
-  /* Center bullet with first line: top 0 positions bullet (1.4em tall) so its center ~0.7em aligns with line center ~0.71em */
   top: 0;
 }
 
-/* Both ul and ol render as bullets for consistent list appearance */
+.wysiwyg-content li[data-list=checked]::before,
+.wysiwyg-editor .ql-editor li[data-list=checked]::before {
+  content: "\2611";
+  position: absolute;
+  inset-inline-start: 0;
+  color: #374151;
+  line-height: 1;
+  top: 0;
+}
+
+.wysiwyg-content li[data-list=unchecked]::before,
+.wysiwyg-editor .ql-editor li[data-list=unchecked]::before {
+  content: "\2610";
+  position: absolute;
+  inset-inline-start: 0;
+  color: #374151;
+  line-height: 1;
+  top: 0;
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list],
+  .wysiwyg-editor .ql-editor li[data-list] {
+    counter-set: list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list],
+  .wysiwyg-editor .ql-editor li[data-list] {
+    counter-reset: list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered],
+.wysiwyg-editor .ql-editor li[data-list=ordered] {
+  counter-increment: list-0;
+}
+
+.wysiwyg-content li[data-list=ordered]::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered]::before {
+  content: counter(list-0, decimal) ". ";
+  position: absolute;
+  inset-inline-start: 0;
+  color: #374151;
+  font-weight: normal;
+  line-height: inherit;
+  top: 0;
+  font-size: inherit;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-1,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-1 {
+  counter-increment: list-1;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-1::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-1::before {
+  content: counter(list-1, lower-alpha) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-1,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-1 {
+    counter-set: list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-1,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-1 {
+    counter-reset: list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-2,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-2 {
+  counter-increment: list-2;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-2::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-2::before {
+  content: counter(list-2, lower-roman) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-2,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-2 {
+    counter-set: list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-2,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-2 {
+    counter-reset: list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-3,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-3 {
+  counter-increment: list-3;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-3::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-3::before {
+  content: counter(list-3, decimal) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-3,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-3 {
+    counter-set: list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-3,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-3 {
+    counter-reset: list-4 list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-4,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-4 {
+  counter-increment: list-4;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-4::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-4::before {
+  content: counter(list-4, lower-alpha) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-4,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-4 {
+    counter-set: list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-4,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-4 {
+    counter-reset: list-5 list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-5,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-5 {
+  counter-increment: list-5;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-5::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-5::before {
+  content: counter(list-5, lower-roman) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-5,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-5 {
+    counter-set: list-6 list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-5,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-5 {
+    counter-reset: list-6 list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-6,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-6 {
+  counter-increment: list-6;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-6::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-6::before {
+  content: counter(list-6, decimal) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-6,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-6 {
+    counter-set: list-7 list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-6,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-6 {
+    counter-reset: list-7 list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-7,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-7 {
+  counter-increment: list-7;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-7::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-7::before {
+  content: counter(list-7, lower-alpha) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-7,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-7 {
+    counter-set: list-8 list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-7,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-7 {
+    counter-reset: list-8 list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-8,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-8 {
+  counter-increment: list-8;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-8::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-8::before {
+  content: counter(list-8, lower-roman) ". ";
+}
+
+@supports (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-8,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-8 {
+    counter-set: list-9;
+  }
+}
+
+@supports not (counter-set: none) {
+  .wysiwyg-content li[data-list].ql-indent-8,
+  .wysiwyg-editor .ql-editor li[data-list].ql-indent-8 {
+    counter-reset: list-9;
+  }
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-9,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-9 {
+  counter-increment: list-9;
+}
+
+.wysiwyg-content li[data-list=ordered].ql-indent-9::before,
+.wysiwyg-editor .ql-editor li[data-list=ordered].ql-indent-9::before {
+  content: counter(list-9, decimal) ". ";
+}
+
+/* Quill indent padding (nested list visual hierarchy) */
+.wysiwyg-content .ql-indent-1:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-1:not(.ql-direction-rtl) {
+  padding-left: 3em;
+}
+
+.wysiwyg-content li.ql-indent-1:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-1:not(.ql-direction-rtl) {
+  padding-left: 4.5em;
+}
+
+.wysiwyg-content .ql-indent-2:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-2:not(.ql-direction-rtl) {
+  padding-left: 6em;
+}
+
+.wysiwyg-content li.ql-indent-2:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-2:not(.ql-direction-rtl) {
+  padding-left: 7.5em;
+}
+
+.wysiwyg-content .ql-indent-3:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-3:not(.ql-direction-rtl) {
+  padding-left: 9em;
+}
+
+.wysiwyg-content li.ql-indent-3:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-3:not(.ql-direction-rtl) {
+  padding-left: 10.5em;
+}
+
+.wysiwyg-content .ql-indent-4:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-4:not(.ql-direction-rtl) {
+  padding-left: 12em;
+}
+
+.wysiwyg-content li.ql-indent-4:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-4:not(.ql-direction-rtl) {
+  padding-left: 13.5em;
+}
+
+.wysiwyg-content .ql-indent-5:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-5:not(.ql-direction-rtl) {
+  padding-left: 15em;
+}
+
+.wysiwyg-content li.ql-indent-5:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-5:not(.ql-direction-rtl) {
+  padding-left: 16.5em;
+}
+
+.wysiwyg-content .ql-indent-6:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-6:not(.ql-direction-rtl) {
+  padding-left: 18em;
+}
+
+.wysiwyg-content li.ql-indent-6:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-6:not(.ql-direction-rtl) {
+  padding-left: 19.5em;
+}
+
+.wysiwyg-content .ql-indent-7:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-7:not(.ql-direction-rtl) {
+  padding-left: 21em;
+}
+
+.wysiwyg-content li.ql-indent-7:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-7:not(.ql-direction-rtl) {
+  padding-left: 22.5em;
+}
+
+.wysiwyg-content .ql-indent-8:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-8:not(.ql-direction-rtl) {
+  padding-left: 24em;
+}
+
+.wysiwyg-content li.ql-indent-8:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
+  padding-left: 25.5em;
+}
+
+.wysiwyg-content .ql-indent-9:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor .ql-indent-9:not(.ql-direction-rtl) {
+  padding-left: 27em;
+}
+
+.wysiwyg-content li.ql-indent-9:not(.ql-direction-rtl),
+.wysiwyg-editor .ql-editor li.ql-indent-9:not(.ql-direction-rtl) {
+  padding-left: 28.5em;
+}
+
+.wysiwyg-content li.ql-direction-rtl,
+.wysiwyg-editor .ql-editor li.ql-direction-rtl {
+  padding-right: 1.5em;
+  padding-inline-start: 0;
+}
+
+.wysiwyg-content li.ql-direction-rtl::before,
+.wysiwyg-editor .ql-editor li.ql-direction-rtl::before {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
 
 .wysiwyg-content a {
   color: #3b82f6 !important;
