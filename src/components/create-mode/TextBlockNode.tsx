@@ -114,13 +114,6 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const handleCancel = () => {
-    const next = task.content || '';
-    contentRef.current = next;
-    setContent(next);
-    setIsEditing(false);
-  };
-
   const hasContent = !isEmptyHtml(content);
 
   return (
@@ -164,16 +157,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       <div className="w-5 shrink-0 self-start mt-[calc(0.375rem+0.21em)]" aria-hidden />
       <div className="flex-1 min-w-0 pe-11">
         {isEditing ? (
-          <div 
-            className="flex flex-col"
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancel();
-              }
-            }}
-            tabIndex={-1}
-          >
+          <div className="flex flex-col">
             <div className="relative py-0.5 px-1 min-w-0">
               <WysiwygEditor
                 value={content}

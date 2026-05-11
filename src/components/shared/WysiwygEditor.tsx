@@ -257,6 +257,12 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         onSave?.();
         return;
       }
+      if (e.key === 'Escape' && onSave) {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave();
+        return;
+      }
       // Backspace in empty editor: let parent handle (e.g. delete block)
       if (e.key === 'Backspace' && onBackspaceWhenEmpty) {
         const len = quill.getLength();
