@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
 import { isEmptyHtml, stripInvisibleWordBreaks } from '../../utils/textUtils';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
+import { useDebouncedEditorPersist } from '../../hooks/useDebouncedEditorPersist';
 
 interface TextBlockNodeProps {
   task: Task;
@@ -62,10 +63,28 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
 
 
   useEffect(() => {
-    const next = task.content || '';
-    setContent(next);
-    contentRef.current = next;
-  }, [task.content]);
+    if (!isEditing) {
+      const next = task.content || '';
+      setContent(next);
+      contentRef.current = next;
+    }
+  }, [task.content, isEditing]);
+
+  const getDraft = useCallback(() => contentRef.current, []);
+
+  const persistContent = useCallback(
+    (next: string) => {
+      updateTask(task.id, { content: next });
+    },
+    [task.id, updateTask]
+  );
+
+  const { schedulePersist, flushPersist } = useDebouncedEditorPersist(
+    task.content || '',
+    isEditing,
+    getDraft,
+    persistContent
+  );
 
   const isNewlyCreated = startInEditMode || (Date.now() - task.createdAt < 3000);
 
@@ -83,17 +102,11 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
   const handleContentChange = (value: string) => {
     contentRef.current = value;
     setContent(value);
+    schedulePersist();
   };
 
   const handleSave = () => {
-    const latest = contentRef.current;
-    if (latest !== (task.content || '')) {
-      updateTask(task.id, { content: latest });
-    } else {
-      const next = task.content || '';
-      setContent(next);
-      contentRef.current = next;
-    }
+    flushPersist();
     setIsEditing(false);
   };
 

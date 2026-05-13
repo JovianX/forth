@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
@@ -7,6 +7,7 @@ import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { LinkifyText } from '../shared/LinkifyText';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 import { stripInvisibleWordBreaks } from '../../utils/textUtils';
+import { useDebouncedEditorPersist } from '../../hooks/useDebouncedEditorPersist';
 
 interface NoteBlockProps {
   block: NoteBlock;
@@ -54,6 +55,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
   }, [isEditing, block.type]);
 
   useEffect(() => {
+    if (isEditing) return;
     if (block.type === 'text') {
       const v = block.content || '';
       setText(v);
@@ -63,19 +65,36 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
       setText(v);
       textRef.current = v;
     }
-  }, [block.content, block.taskTitle, block.type]);
+  }, [block.content, block.taskTitle, block.type, isEditing]);
+
+  const serverValue =
+    block.type === 'text' ? (block.content || '') : (block.taskTitle || '');
+  const getDraft = useCallback(() => textRef.current, []);
+  const persistDraft = useCallback(
+    (next: string) => {
+      if (block.type === 'text') {
+        onUpdate(block.id, { content: next });
+      } else {
+        onUpdate(block.id, { taskTitle: next });
+      }
+    },
+    [block.id, block.type, onUpdate]
+  );
+
+  const { schedulePersist, flushPersist, cancelPersistTimer } = useDebouncedEditorPersist(
+    serverValue,
+    isEditing,
+    getDraft,
+    persistDraft
+  );
 
   const handleSave = () => {
-    const latest = textRef.current;
-    if (block.type === 'text') {
-      onUpdate(block.id, { content: latest });
-    } else {
-      onUpdate(block.id, { taskTitle: latest });
-    }
+    flushPersist();
     setIsEditing(false);
   };
 
   const handleCancel = () => {
+    cancelPersistTimer();
     if (block.type === 'text') {
       const v = block.content || '';
       textRef.current = v;
@@ -126,6 +145,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
               const v = e.target.value;
               textRef.current = v;
               setText(v);
+              schedulePersist();
             }}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
@@ -178,6 +198,7 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
           onChange={(v) => {
             textRef.current = v;
             setText(v);
+            schedulePersist();
           }}
           onBlur={handleSave}
           onSave={handleSave}
