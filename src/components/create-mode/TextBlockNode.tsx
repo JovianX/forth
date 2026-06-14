@@ -22,7 +22,9 @@ interface TextBlockNodeProps {
 
 export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDragOver = false, hideSourceWhileDragging = false, compact = false, startInEditMode = false }) => {
   const { deleteTask, updateTask } = useTaskContext();
-  const [isEditing, setIsEditing] = useState(() => startInEditMode || isEmptyHtml(task.content));
+  const [isEditing, setIsEditing] = useState(
+    () => startInEditMode || (isEmptyHtml(task.content) && Date.now() - task.createdAt < 3000)
+  );
   const [content, setContent] = useState(task.content || '');
   const [showShortcutHint, setShowShortcutHint] = useState(
     () => (startInEditMode || (Date.now() - task.createdAt < 3000)) && (startInEditMode || isEmptyHtml(task.content))

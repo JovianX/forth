@@ -79,6 +79,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
   const [personaPanel, setPersonaPanel] = useState<PersonaPanelState | null>(null);
   const processedEntriesRef = useRef<Set<string>>(new Set());
   const pendingEntryIdsRef = useRef<Map<string, string>>(new Map()); // Maps containerId to entryId
+  const contentScrollRef = useRef<HTMLDivElement>(null);
   
   const SIDEBAR_MIN = 180;
   const SIDEBAR_MAX = 480;
@@ -348,6 +349,11 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
       setSelectedContainerId(rootContainers[0].id);
     }
   }, [selectedContainerId, rootContainers]);
+
+  // Reset scroll when switching topics — the panel is one shared scroll container
+  useLayoutEffect(() => {
+    contentScrollRef.current?.scrollTo({ top: 0 });
+  }, [selectedContainerId]);
 
   const selectedContainer = containers.find((c) => c.id === selectedContainerId);
 
@@ -1174,7 +1180,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
             boxShadow: isResizing ? 'inset 2px 0 8px -4px rgba(0,0,0,0.06)' : undefined,
           }}
         >
-          <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+          <div ref={contentScrollRef} className="flex-1 min-w-0 min-h-0 overflow-y-auto">
           {selectedContainer ? (
             <div className="p-4 sm:p-6">
               {entries.length === 0 && ungroupedItems.length === 0 ? (
