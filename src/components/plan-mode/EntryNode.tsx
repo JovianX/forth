@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ListTodo, Type, Sparkles } from 'lucide-react';
+import { GripVertical, Trash2, ListTodo, Type } from 'lucide-react';
 import { Task } from '../../types';
 import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
@@ -36,13 +36,6 @@ interface EntryNodeProps {
   activeDragId?: string | null;
   containerId: string;
   justCreated?: boolean;
-  onPersonaSparkle?: (payload: {
-    entry: Task;
-    items: Task[];
-    containerId: string;
-  }) => void;
-  /** True while persona AI request for this entry is in flight */
-  personaRequestBusy?: boolean;
 }
 
 export const EntryNode: React.FC<EntryNodeProps> = ({
@@ -51,8 +44,6 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
   activeDragId,
   containerId,
   justCreated = false,
-  onPersonaSparkle,
-  personaRequestBusy = false,
 }) => {
   const { tasks, deleteTask, updateTask, addTask, reorderTasksInEntry } = useTaskContext();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -234,10 +225,6 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
     });
   };
 
-  const handleAiAction = () => {
-    onPersonaSparkle?.({ entry, items, containerId });
-  };
-
   return (
     <>
     <div
@@ -291,16 +278,6 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleAiAction}
-            disabled={personaRequestBusy}
-            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
-            title="Persona feedback (AI)"
-            aria-label="Persona feedback"
-          >
-            <Sparkles size={18} className={personaRequestBusy ? 'animate-pulse' : undefined} />
-          </button>
           <button
             type="button"
             onClick={handleDeleteEntry}

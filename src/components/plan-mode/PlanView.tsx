@@ -34,24 +34,6 @@ import {
 import { getPriorityAfter, getPriorityBefore, getPriorityBetween } from '../../utils/taskUtils';
 import { Plus } from 'lucide-react';
 import { UserMenu } from '../UserMenu';
-import { PersonaResponsePanel } from './PersonaResponsePanel';
-import type { Persona } from '../../types';
-import { serializeEntryForPersona } from '../../utils/serializeEntryForPersona';
-import {
-  loadPersonas,
-  loadDefaultPersonaId,
-  loadOllamaBaseUrl,
-  loadOllamaModel,
-  loadPersonaAiBackend,
-  loadWebLlmModel,
-} from '../../utils/personaStorage';
-import {
-  ollamaChat,
-  buildPersonaSystemMessage,
-  buildPersonaUserMessage,
-} from '../../utils/ollamaClient';
-import { webLlmPersonaChat } from '../../utils/webLlmPersonaChat';
-import { escapeHtml } from '../../utils/textUtils';
 
 interface PlanViewProps {
   onSettingsClick?: () => void;
@@ -65,18 +47,6 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
   const [isCreatingContainer, setIsCreatingContainer] = useState(false);
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
   const [newlyCreatedEntryId, setNewlyCreatedEntryId] = useState<string | null>(null);
-  type PersonaPanelState = {
-    entryId: string;
-    containerId: string;
-    persona: Persona | null;
-    serializedEntry: string;
-    loading: boolean;
-    /** WebLLM model download / init status */
-    loadingDetail?: string | null;
-    response: string;
-    error: string | null;
-  };
-  const [personaPanel, setPersonaPanel] = useState<PersonaPanelState | null>(null);
   const processedEntriesRef = useRef<Set<string>>(new Set());
   const pendingEntryIdsRef = useRef<Map<string, string>>(new Map()); // Maps containerId to entryId
   const contentScrollRef = useRef<HTMLDivElement>(null);
@@ -214,134 +184,6 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
     });
     return map;
   }, [tasks, selectedContainerId, entries]);
-
-  const runPersonaAi = useCallback(async (entryId: string, serializedEntry: string, persona: Persona) => {
-    const messages = [
-      { role: 'system' as const, content: buildPersonaSystemMessage(persona.instructions) },
-      { role: 'user' as const, content: buildPersonaUserMessage(serializedEntry) },
-    ];
-    try {
-      const backend = loadPersonaAiBackend();
-      let content: string;
-      if (backend === 'webllm') {
-        const modelId = loadWebLlmModel();
-        content = await webLlmPersonaChat({
-          modelId,
-          messages,
-          onProgress: (report) => {
-            setPersonaPanel((prev) => {
-              if (!prev || prev.entryId !== entryId) return prev;
-              const detail =
-                report.text?.trim() || `Loading model… ${Math.round(report.progress * 100)}%`;
-              return { ...prev, loadingDetail: detail };
-            });
-          },
-        });
-      } else {
-        const baseUrl = loadOllamaBaseUrl();
-        const model = loadOllamaModel();
-        content = await ollamaChat({ baseUrl, model, messages });
-      }
-      setPersonaPanel((prev) => {
-        if (!prev || prev.entryId !== entryId) return prev;
-        return { ...prev, loading: false, loadingDetail: null, response: content, error: null };
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Request failed';
-      setPersonaPanel((prev) => {
-        if (!prev || prev.entryId !== entryId) return prev;
-        return { ...prev, loading: false, loadingDetail: null, error: msg, response: '' };
-      });
-    }
-  }, []);
-
-  const handlePersonaSparkle = useCallback(
-    async ({
-      entry,
-      items: entryItems,
-      containerId,
-    }: {
-      entry: Task;
-      items: Task[];
-      containerId: string;
-    }) => {
-      const sorted = [...entryItems].sort((a, b) => b.priority - a.priority);
-      const { fullText, isEmpty } = serializeEntryForPersona(entry, sorted);
-      if (isEmpty) {
-        setPersonaPanel({
-          entryId: entry.id,
-          containerId,
-          persona: null,
-          serializedEntry: fullText,
-          loading: false,
-          loadingDetail: null,
-          response: '',
-          error:
-            'Add some text, tasks, or notes to this entry before asking for feedback.',
-        });
-        return;
-      }
-      const personas = loadPersonas();
-      const defaultId = loadDefaultPersonaId();
-      const persona = personas.find((p) => p.id === defaultId) ?? personas[0] ?? null;
-      if (!persona) {
-        setPersonaPanel({
-          entryId: entry.id,
-          containerId,
-          persona: null,
-          serializedEntry: fullText,
-          loading: false,
-          loadingDetail: null,
-          response: '',
-          error: 'Create a persona in Settings first (sparkles uses your default persona).',
-        });
-        return;
-      }
-      setPersonaPanel({
-        entryId: entry.id,
-        containerId,
-        persona,
-        serializedEntry: fullText,
-        loading: true,
-        loadingDetail: null,
-        response: '',
-        error: null,
-      });
-      await runPersonaAi(entry.id, fullText, persona);
-    },
-    [runPersonaAi]
-  );
-
-  const handlePersonaRegenerate = useCallback(() => {
-    if (!personaPanel?.persona) return;
-    const { entryId, serializedEntry, persona } = personaPanel;
-    setPersonaPanel((p) =>
-      p ? { ...p, loading: true, loadingDetail: null, error: null, response: '' } : p
-    );
-    void runPersonaAi(entryId, serializedEntry, persona);
-  }, [personaPanel, runPersonaAi]);
-
-  const handlePersonaInsert = useCallback(() => {
-    if (!personaPanel?.persona || !personaPanel.response.trim()) return;
-    const { entryId, containerId, persona, response } = personaPanel;
-    const entryItems = itemsByEntry.get(entryId) || [];
-    const sortedItems = [...entryItems].sort((a, b) => b.priority - a.priority);
-    const priorityAtEnd =
-      sortedItems.length > 0 ? Math.min(...sortedItems.map((t) => t.priority)) - 1 : undefined;
-    const dateStr = new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-    const bodyHtml = escapeHtml(response).replace(/\n/g, '<br>');
-    const html = `<p><strong>${escapeHtml(persona.name)}</strong> · ${escapeHtml(dateStr)}</p><p>${bodyHtml}</p>`;
-    addTask('', containerId, priorityAtEnd, 'text-block', html, (newTaskId) => {
-      updateTask(newTaskId, { entryId });
-    });
-  }, [personaPanel, itemsByEntry, addTask, updateTask]);
-
-  const closePersonaPanel = useCallback(() => setPersonaPanel(null), []);
 
   // Auto-select first container if none selected
   React.useEffect(() => {
@@ -1170,7 +1012,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
           </div>
         )}
 
-        {/* Right Content Area: entries + optional persona panel */}
+        {/* Right Content Area */}
         <div
           className={`relative z-0 flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row overflow-hidden backdrop-blur-sm transition-shadow duration-200 ${
             isResizing ? 'bg-white/50' : 'bg-white/40'
@@ -1275,10 +1117,6 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
                             activeDragId={activeId}
                             containerId={selectedContainer.id}
                             justCreated={entry.id === newlyCreatedEntryId}
-                            onPersonaSparkle={handlePersonaSparkle}
-                            personaRequestBusy={Boolean(
-                              personaPanel?.loading && personaPanel.entryId === entry.id
-                            )}
                           />
                         </React.Fragment>
                       );
@@ -1312,22 +1150,6 @@ export const PlanView: React.FC<PlanViewProps> = ({ onSettingsClick, onColorPale
             </div>
           )}
           </div>
-          {personaPanel && (
-            <PersonaResponsePanel
-              personaName={personaPanel.persona?.name ?? null}
-              loading={personaPanel.loading}
-              loadingDetail={personaPanel.loadingDetail ?? null}
-              error={personaPanel.error}
-              response={personaPanel.response}
-              onClose={closePersonaPanel}
-              onRegenerate={handlePersonaRegenerate}
-              onInsert={handlePersonaInsert}
-              insertDisabled={!personaPanel.persona || !personaPanel.response.trim()}
-              onOpenSettings={onSettingsClick}
-              primaryColor={primaryColor}
-              primaryDark={primaryDark}
-            />
-          )}
         </div>
       </div>
       <DragOverlay>
