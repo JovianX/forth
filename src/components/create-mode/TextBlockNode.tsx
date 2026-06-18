@@ -6,6 +6,7 @@ import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
 import { isEmptyHtml, stripInvisibleWordBreaks } from '../../utils/textUtils';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
+import { AgentRunButton } from '../shared/AgentRunButton';
 import { useDebouncedEditorPersist } from '../../hooks/useDebouncedEditorPersist';
 
 interface TextBlockNodeProps {
@@ -170,7 +171,7 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       </div>
       {/* Spacer to align text with task title (same width as task checkbox) */}
       <div className="w-5 shrink-0 self-start mt-[calc(0.375rem+0.21em)]" aria-hidden />
-      <div className="flex-1 min-w-0 pe-11">
+      <div className="flex-1 min-w-0 pe-[4.75rem]">
         {isEditing ? (
           <div className="flex flex-col">
             <div className="relative py-0.5 px-1 min-w-0">
@@ -221,16 +222,21 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
           )}
         </div>
       )}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          deleteTask(task.id);
-        }}
-        className="absolute end-0 top-[calc(0.375rem+0.71em)] -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all leading-[1.42]"
-        aria-label="Delete text block"
-      >
-        <Trash2 size={16} />
-      </button>
+      <div className="absolute end-0 top-[calc(0.375rem+0.71em)] -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity leading-[1.42]">
+        {task.type === 'text-block' && (
+          <AgentRunButton task={task} />
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteTask(task.id);
+          }}
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          aria-label="Delete text block"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </div>
   );
 };

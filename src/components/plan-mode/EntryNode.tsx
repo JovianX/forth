@@ -10,6 +10,7 @@ import { TaskNode } from '../create-mode/TaskNode';
 import { TextBlockNode } from '../create-mode/TextBlockNode';
 import { NoteNode } from '../create-mode/NoteNode';
 import { EntryDivider } from './EntryDivider';
+import { AgentRunButton } from '../shared/AgentRunButton';
 import { useTaskContext } from '../../context/TaskContext';
 import {
   SortableContext,
@@ -278,6 +279,7 @@ export const EntryNode: React.FC<EntryNodeProps> = ({
               </button>
             )}
           </div>
+          <AgentRunButton task={entry} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100" />
           <button
             type="button"
             onClick={handleDeleteEntry}

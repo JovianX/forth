@@ -40,3 +40,9 @@ export interface AppState {
 }
 
 export type Mode = 'create' | 'prioritize' | 'capture';
+
+export interface AiAgent {
+  id: string;
+  name: string;
+  systemPrompt: string;
+}

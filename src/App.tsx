@@ -9,6 +9,7 @@ import { Login } from './components/Login';
 import { useTaskContext } from './context/TaskContext';
 import { useAuth } from './context/AuthContext';
 import { getPalette } from './utils/paletteUtils';
+import { AiSettings } from './components/settings/AiSettings';
 
 const FILTER_STORAGE_KEY = 'forth-filter-state';
 
@@ -208,6 +209,7 @@ function App() {
                   <span>Theme</span>
                 </button>
               </div>
+              <AiSettings onClose={() => setShowSettings(false)} />
               <div className="h-3 shrink-0" aria-hidden />
             </div>
           </div>
