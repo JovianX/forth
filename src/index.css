@@ -135,6 +135,8 @@ body {
 .wysiwyg-content ul > li:not([data-list])::before,
 .wysiwyg-editor .ql-editor ul > li:not([data-list])::before {
   content: "\2022";
+  font-size: 1em;
+  font-weight: 400;
 }
 
 .wysiwyg-content li[data-list=checked]::before,
