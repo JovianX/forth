@@ -28,13 +28,16 @@ body {
 
 /* Styles for rendering HTML content from WYSIWYG editor */
 /* Match editor styles exactly */
-.wysiwyg-content {
+.wysiwyg-content,
+.wysiwyg-editor .ql-editor {
+  /* rem-based list metrics so indent px is identical in edit (Quill) and view */
+  --wysiwyg-list-gutter: 1.5rem;
+  --wysiwyg-list-step: 3rem; /* Quill nest step (was 3em); rem keeps edit/view identical */
   color: #374151;
   padding: 0.25rem 0.25rem;
   min-height: 1.5rem;
   font-size: inherit;
   font-weight: inherit;
-  /* Match Quill .ql-editor exactly - same line-height and wrapping for identical edit/view appearance */
   line-height: 1.42;
   white-space: pre-wrap;
   overflow-wrap: break-word;
@@ -77,10 +80,13 @@ body {
 }
 
 /*
- * Lists: Quill uses a flat <ol> with li[data-list=bullet|ordered] and .ql-indent-N for nesting.
- * We draw markers on li::before (saved HTML often has no .ql-ui), matching Quill snow counters.
+ * Lists: Quill uses a flat <ol> with li[data-list=bullet|ordered] and .ql-indent-N.
+ * Edit and view share the same marker + indent CSS so layout matches exactly.
+ * Quill's .ql-ui is hidden; we draw li::before in both modes.
+ * ol padding is 0 so level-0 bullets align with surrounding paragraph text.
  */
-.wysiwyg-content:not(:has(.ql-editor)) {
+.wysiwyg-content:not(:has(.ql-editor)),
+.wysiwyg-editor .ql-editor {
   counter-reset: list-0 list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
 }
 
@@ -94,16 +100,34 @@ body {
 .wysiwyg-editor .ql-editor ul,
 .wysiwyg-editor .ql-editor ol {
   margin: 0.5em 0;
-  padding-inline-start: 1.5em;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
   list-style-type: none;
 }
 
 .wysiwyg-content li,
 .wysiwyg-editor .ql-editor li {
   margin: 0.25em 0;
-  padding-inline-start: 1.5em;
+  padding-left: var(--wysiwyg-list-gutter) !important;
   list-style: none;
   position: relative;
+}
+
+/* Shared markers (view + edit) */
+.wysiwyg-content li[data-list]::before,
+.wysiwyg-editor .ql-editor li[data-list]::before,
+.wysiwyg-content ul > li:not([data-list])::before,
+.wysiwyg-editor .ql-editor ul > li:not([data-list])::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--wysiwyg-list-gutter);
+  text-align: center;
+  white-space: nowrap;
+  color: #374151;
+  line-height: 1.42;
+  font-size: inherit;
+  font-weight: normal;
 }
 
 .wysiwyg-content li[data-list=bullet]::before,
@@ -111,33 +135,16 @@ body {
 .wysiwyg-content ul > li:not([data-list])::before,
 .wysiwyg-editor .ql-editor ul > li:not([data-list])::before {
   content: "\2022";
-  position: absolute;
-  inset-inline-start: 0;
-  color: #374151;
-  font-size: 1.4em;
-  font-weight: bold;
-  line-height: 1;
-  top: 0;
 }
 
 .wysiwyg-content li[data-list=checked]::before,
 .wysiwyg-editor .ql-editor li[data-list=checked]::before {
   content: "\2611";
-  position: absolute;
-  inset-inline-start: 0;
-  color: #374151;
-  line-height: 1;
-  top: 0;
 }
 
 .wysiwyg-content li[data-list=unchecked]::before,
 .wysiwyg-editor .ql-editor li[data-list=unchecked]::before {
   content: "\2610";
-  position: absolute;
-  inset-inline-start: 0;
-  color: #374151;
-  line-height: 1;
-  top: 0;
 }
 
 @supports (counter-set: none) {
@@ -162,13 +169,9 @@ body {
 .wysiwyg-content li[data-list=ordered]::before,
 .wysiwyg-editor .ql-editor li[data-list=ordered]::before {
   content: counter(list-0, decimal) ". ";
-  position: absolute;
-  inset-inline-start: 0;
-  color: #374151;
-  font-weight: normal;
-  line-height: inherit;
-  top: 0;
-  font-size: inherit;
+  text-align: right;
+  padding-right: 0.3em;
+  box-sizing: border-box;
 }
 
 .wysiwyg-content li[data-list=ordered].ql-indent-1,
@@ -373,107 +376,152 @@ body {
   content: counter(list-9, decimal) ". ";
 }
 
-/* Quill indent padding (nested list visual hierarchy) */
+/* Indent in rem so nest width is identical in edit and view (em followed Quill 13px vs body 16px) */
 .wysiwyg-content .ql-indent-1:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-1:not(.ql-direction-rtl) {
-  padding-left: 3em;
+  padding-left: calc(1 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-1:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-1:not(.ql-direction-rtl) {
-  padding-left: 4.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 1 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-1:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-1:not(.ql-direction-rtl)::before {
+  left: calc(1 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-2:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-2:not(.ql-direction-rtl) {
-  padding-left: 6em;
+  padding-left: calc(2 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-2:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-2:not(.ql-direction-rtl) {
-  padding-left: 7.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 2 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-2:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-2:not(.ql-direction-rtl)::before {
+  left: calc(2 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-3:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-3:not(.ql-direction-rtl) {
-  padding-left: 9em;
+  padding-left: calc(3 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-3:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-3:not(.ql-direction-rtl) {
-  padding-left: 10.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 3 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-3:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-3:not(.ql-direction-rtl)::before {
+  left: calc(3 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-4:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-4:not(.ql-direction-rtl) {
-  padding-left: 12em;
+  padding-left: calc(4 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-4:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-4:not(.ql-direction-rtl) {
-  padding-left: 13.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 4 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-4:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-4:not(.ql-direction-rtl)::before {
+  left: calc(4 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-5:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-5:not(.ql-direction-rtl) {
-  padding-left: 15em;
+  padding-left: calc(5 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-5:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-5:not(.ql-direction-rtl) {
-  padding-left: 16.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 5 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-5:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-5:not(.ql-direction-rtl)::before {
+  left: calc(5 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-6:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-6:not(.ql-direction-rtl) {
-  padding-left: 18em;
+  padding-left: calc(6 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-6:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-6:not(.ql-direction-rtl) {
-  padding-left: 19.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 6 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-6:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-6:not(.ql-direction-rtl)::before {
+  left: calc(6 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-7:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-7:not(.ql-direction-rtl) {
-  padding-left: 21em;
+  padding-left: calc(7 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-7:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-7:not(.ql-direction-rtl) {
-  padding-left: 22.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 7 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-7:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-7:not(.ql-direction-rtl)::before {
+  left: calc(7 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-8:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-8:not(.ql-direction-rtl) {
-  padding-left: 24em;
+  padding-left: calc(8 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-8:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-8:not(.ql-direction-rtl) {
-  padding-left: 25.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 8 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-8:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-8:not(.ql-direction-rtl)::before {
+  left: calc(8 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content .ql-indent-9:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor .ql-indent-9:not(.ql-direction-rtl) {
-  padding-left: 27em;
+  padding-left: calc(9 * var(--wysiwyg-list-step)) !important;
 }
 
 .wysiwyg-content li.ql-indent-9:not(.ql-direction-rtl),
 .wysiwyg-editor .ql-editor li.ql-indent-9:not(.ql-direction-rtl) {
-  padding-left: 28.5em;
+  padding-left: calc(var(--wysiwyg-list-gutter) + 9 * var(--wysiwyg-list-step)) !important;
+}
+
+.wysiwyg-content li.ql-indent-9:not(.ql-direction-rtl)::before,
+.wysiwyg-editor .ql-editor li.ql-indent-9:not(.ql-direction-rtl)::before {
+  left: calc(9 * var(--wysiwyg-list-step));
 }
 
 .wysiwyg-content li.ql-direction-rtl,
 .wysiwyg-editor .ql-editor li.ql-direction-rtl {
-  padding-right: 1.5em;
-  padding-inline-start: 0;
+  padding-left: 0 !important;
+  padding-right: var(--wysiwyg-list-gutter) !important;
 }
 
 .wysiwyg-content li.ql-direction-rtl::before,
 .wysiwyg-editor .ql-editor li.ql-direction-rtl::before {
-  inset-inline-start: auto;
-  inset-inline-end: 0;
+  left: auto;
+  right: 0;
 }
 
 .wysiwyg-content a {

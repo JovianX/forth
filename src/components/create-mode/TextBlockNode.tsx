@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Task } from '../../types';
 import { useTaskContext } from '../../context/TaskContext';
-import { isEmptyHtml, stripInvisibleWordBreaks } from '../../utils/textUtils';
+import { isEmptyHtml } from '../../utils/textUtils';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
 import { AgentRunButton } from '../shared/AgentRunButton';
 import { useDebouncedEditorPersist } from '../../hooks/useDebouncedEditorPersist';
@@ -172,44 +172,33 @@ export const TextBlockNode: React.FC<TextBlockNodeProps> = ({ task, depth, isDra
       {/* Spacer to align text with task title (same width as task checkbox) */}
       <div className="w-5 shrink-0 self-start mt-[calc(0.375rem+0.21em)]" aria-hidden />
       <div className="flex-1 min-w-0 pe-[4.75rem]">
-        {isEditing ? (
-          <div className="flex flex-col">
-            <div className="relative py-0.5 px-1 min-w-0">
-              <WysiwygEditor
-                value={content}
-                onChange={handleContentChange}
-                onBlur={handleSave}
-                onSave={handleSave}
-                onBackspaceWhenEmpty={() => deleteTask(task.id)}
-                placeholder="Write text..."
-                className="w-full"
-                autoFocus={true}
-                focusImmediately={startInEditMode || isEmptyHtml(content)}
-              />
-              {!isTouchDevice && isNewlyCreated && (
-              <div className={`absolute right-9 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
-                <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
-                  {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
-                </kbd>
-                <span>+</span>
-                <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
-                <span>to save</span>
-              </div>
-              )}
+        <div className="flex flex-col">
+          <div className="relative py-0.5 px-1 min-w-0">
+            <WysiwygEditor
+              value={content}
+              onChange={handleContentChange}
+              onBlur={handleSave}
+              onSave={handleSave}
+              onBackspaceWhenEmpty={() => deleteTask(task.id)}
+              placeholder={hasContent ? 'Write text...' : 'Empty text block - click to edit'}
+              className="w-full"
+              autoFocus={isEditing}
+              focusImmediately={isEditing && (startInEditMode || isEmptyHtml(content))}
+              readOnly={!isEditing}
+              onActivate={() => setIsEditing(true)}
+            />
+            {!isTouchDevice && isNewlyCreated && isEditing && (
+            <div className={`absolute right-9 top-1.5 z-10 flex items-center gap-1.5 text-xs text-gray-500 pointer-events-none transition-opacity duration-300 ${showShortcutHint ? 'opacity-100' : 'opacity-0'}`}>
+              <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">
+                {navigator.platform.toLowerCase().includes('mac') || navigator.userAgent.toLowerCase().includes('mac') ? '⌘' : 'Ctrl'}
+              </kbd>
+              <span>+</span>
+              <kbd className="px-1.5 py-0.5 rounded font-mono border border-gray-300 bg-gray-100/90">Enter</kbd>
+              <span>to save</span>
             </div>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col">
-            <div className="relative py-0.5 px-1 min-w-0">
-              <div
-                className="cursor-text wysiwyg-content min-w-0 w-full"
-                title="Click to edit"
-                dangerouslySetInnerHTML={{ __html: hasContent ? stripInvisibleWordBreaks(content) : '<span class="text-gray-400 italic">Empty text block - click to edit</span>' }}
-                onClick={() => setIsEditing(true)}
-              />
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       {!task.entryId && (
         <div className="flex items-center gap-1.5 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto self-start mt-[calc(0.375rem+0.1em)] leading-[1.42]">

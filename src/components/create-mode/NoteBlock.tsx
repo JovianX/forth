@@ -6,7 +6,6 @@ import { NoteBlock } from '../../types';
 import { TaskCheckbox } from '../shared/TaskCheckbox';
 import { LinkifyText } from '../shared/LinkifyText';
 import { WysiwygEditor } from '../shared/WysiwygEditor';
-import { stripInvisibleWordBreaks } from '../../utils/textUtils';
 import { useDebouncedEditorPersist } from '../../hooks/useDebouncedEditorPersist';
 
 interface NoteBlockProps {
@@ -184,56 +183,49 @@ export const NoteBlockComponent: React.FC<NoteBlockProps> = ({
   }
 
   // Text block
-  const hasTextContent = block.type === 'text' ? (text.replace(/<[^>]*>/g, '').trim().length > 0) : false;
-  
   return (
     <div
       ref={setNodeRef}
       style={style}
       className="py-1 group/block"
     >
-      {isEditing ? (
-        <WysiwygEditor
-          value={text}
-          onChange={(v) => {
-            textRef.current = v;
-            setText(v);
-            schedulePersist();
-          }}
-          onBlur={handleSave}
-          onSave={handleSave}
-          placeholder="Write text..."
-          className="w-full"
-          autoFocus={true}
-        />
-      ) : (
-        <div className="flex items-start gap-2 relative pe-11">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/block:opacity-100 transition-opacity self-start mt-[calc(0.25rem+0.71em-0.4375em)] leading-[1.42]"
-            aria-label="Drag to reorder"
-          >
-            <GripVertical size={14} />
-          </div>
-          <div
-            className="flex-1 cursor-text wysiwyg-content"
-            onClick={() => setIsEditing(true)}
-            title="Click to edit"
-            dangerouslySetInnerHTML={{ __html: hasTextContent ? stripInvisibleWordBreaks(text) : '<span class="text-gray-400 italic">Empty text block</span>' }}
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(block.id);
-            }}
-            className="absolute end-0 top-[calc(0.25rem+0.71em)] -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all leading-[1.42]"
-            aria-label="Delete block"
-          >
-            <Trash2 size={14} />
-          </button>
+      <div className="flex items-start gap-2 relative pe-11">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-0.5 text-gray-400 hover:text-gray-600 touch-none opacity-0 group-hover/block:opacity-100 transition-opacity self-start mt-[calc(0.25rem+0.71em-0.4375em)] leading-[1.42]"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical size={14} />
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <WysiwygEditor
+            value={text}
+            onChange={(v) => {
+              textRef.current = v;
+              setText(v);
+              schedulePersist();
+            }}
+            onBlur={handleSave}
+            onSave={handleSave}
+            placeholder="Write text..."
+            className="w-full"
+            autoFocus={isEditing}
+            readOnly={!isEditing}
+            onActivate={() => setIsEditing(true)}
+          />
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(block.id);
+          }}
+          className="absolute end-0 top-[calc(0.25rem+0.71em)] -translate-y-1/2 opacity-0 group-hover/block:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all leading-[1.42]"
+          aria-label="Delete block"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   );
 };

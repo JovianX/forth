@@ -16,6 +16,10 @@ interface WysiwygEditorProps {
   autoFocus?: boolean;
   /** When true, focus immediately (no delay) - for newly created blocks */
   focusImmediately?: boolean;
+  /** Render as non-editable; click calls onActivate (keeps same Quill layout as edit) */
+  readOnly?: boolean;
+  /** Called when user clicks a read-only editor to begin editing */
+  onActivate?: () => void;
 }
 
 export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
@@ -29,6 +33,8 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   className = '',
   autoFocus = false,
   focusImmediately = false,
+  readOnly = false,
+  onActivate,
 }) => {
   const quillRef = useRef<ReactQuill>(null);
   /** Safe getter - returns null if editor not yet instantiated (avoids "Accessing non-instantiated editor") */
@@ -46,6 +52,10 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   const isPastingRef = useRef(false);
   const onEnterRef = useRef(onEnter);
   onEnterRef.current = onEnter;
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+  const onActivateRef = useRef(onActivate);
+  onActivateRef.current = onActivate;
   // Generate a safe CSS class name (only alphanumeric and hyphens)
   const editorIdRef = useRef(`wysiwyg-${Math.random().toString(36).substring(2, 11).replace(/[^a-z0-9-]/g, '')}`);
 
@@ -90,7 +100,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   };
 
   useEffect(() => {
-    if (!autoFocus) return;
+    if (!autoFocus || readOnly) return;
     let cancelled = false;
     const delay = focusImmediately ? 0 : 100;
     const retryMs = focusImmediately ? 25 : 50;
@@ -103,7 +113,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         // Defer setSelection to avoid "addRange: range isn't in document" when DOM isn't ready
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (cancelled || !q.root?.isConnected) return;
+            if (cancelled || !q.root?.isConnected || readOnlyRef.current) return;
             const len = q.getLength();
             if (len < 1) return; // Editor not ready yet
             // Don't overwrite cursor if user has already typed (avoids "strange behaviour on first type")
@@ -139,7 +149,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     };
     attempt();
     return () => { cancelled = true; };
-  }, [autoFocus, focusImmediately]);
+  }, [autoFocus, focusImmediately, readOnly]);
 
   // Restore cursor position when editor gains focus (but respect user clicks)
   useEffect(() => {
@@ -251,6 +261,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     let readyTimeout: NodeJS.Timeout | null = setTimeout(checkAndRestore, 100);
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (readOnlyRef.current) return;
       // Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -311,6 +322,10 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       if (!quill.root?.isConnected) return;
       const toolbar = document.querySelector(`.${editorIdRef.current} .ql-toolbar`) as HTMLElement;
       if (!toolbar) return;
+      if (readOnlyRef.current) {
+        toolbar.classList.remove('show');
+        return;
+      }
 
       let selection: { index: number; length: number } | null = null;
       try {
@@ -473,8 +488,17 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     return () => cleanup?.();
   }, [onSave, onBackspaceWhenEmpty, autoFocus]);
 
+  // Keep Quill enable/disable in sync with readOnly
+  useEffect(() => {
+    const quill = getQuill();
+    if (!quill) return;
+    quill.enable(!readOnly);
+    const toolbar = document.querySelector(`.${editorIdRef.current} .ql-toolbar`) as HTMLElement | null;
+    toolbar?.classList.remove('show');
+  }, [readOnly]);
+
   const handleBlur = () => {
-    if (isPastingRef.current) return;
+    if (isPastingRef.current || readOnlyRef.current) return;
 
     const quill = getQuill();
     if (quill) {
@@ -491,6 +515,28 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   };
 
   const modules = useMemo(() => {
+    // Quill's default Tab indent only runs at line start (offset === 0); mid-line Tab
+    // inserts a literal tab. Override so Tab/Shift+Tab always nest/unnest list items.
+    const listIndentBindings = {
+      indent: {
+        key: 'Tab' as const,
+        format: ['list', 'blockquote', 'indent'],
+        handler(this: { quill: { format: (name: string, value: string, source: string) => void } }) {
+          this.quill.format('indent', '+1', 'user');
+          return false;
+        },
+      },
+      outdent: {
+        key: 'Tab' as const,
+        shiftKey: true,
+        format: ['list', 'blockquote', 'indent'],
+        handler(this: { quill: { format: (name: string, value: string, source: string) => void } }) {
+          this.quill.format('indent', '-1', 'user');
+          return false;
+        },
+      },
+    };
+
     const base: Record<string, unknown> = {
       toolbar: [
         ['bold', 'italic', 'underline', 'strike'],
@@ -502,26 +548,27 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       clipboard: {
         matchVisual: false,
       },
+      keyboard: {
+        bindings: {
+          ...listIndentBindings,
+        },
+      },
     };
     // When onEnter is provided, override Enter to create new block instead of new line.
     // Config bindings run before Quill's defaults; shiftKey:false = plain Enter only.
     if (onEnter) {
-      base.keyboard = {
-        bindings: {
-          enterNewBlock: {
-            key: 'Enter',
-            shiftKey: false,
-            metaKey: false,
-            ctrlKey: false,
-            handler: function(this: { quill: { root: HTMLElement } }, _range: { index: number; length: number }) {
-              const cb = onEnterRef.current;
-              if (cb) {
-                cb();
-                return false; // Prevent Quill from inserting newline
-              }
-              return true;
-            },
-          },
+      (base.keyboard as { bindings: Record<string, unknown> }).bindings.enterNewBlock = {
+        key: 'Enter',
+        shiftKey: false,
+        metaKey: false,
+        ctrlKey: false,
+        handler: function(this: { quill: { root: HTMLElement } }, _range: { index: number; length: number }) {
+          const cb = onEnterRef.current;
+          if (cb) {
+            cb();
+            return false; // Prevent Quill from inserting newline
+          }
+          return true;
         },
       };
     }
@@ -539,8 +586,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   return (
     <>
       <div
-        className={`${className} ${editorIdRef.current}`}
-        onClick={(e) => e.stopPropagation()}
+        className={`${className} ${editorIdRef.current}${readOnly ? ' wysiwyg-readonly' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (readOnlyRef.current) {
+            onActivateRef.current?.();
+          }
+        }}
       >
         <ReactQuill
           ref={quillRef}
@@ -551,6 +603,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           formats={formats}
           placeholder={placeholder}
           onBlur={handleBlur}
+          readOnly={readOnly}
           className="wysiwyg-editor"
           style={{
             backgroundColor: 'transparent',
@@ -564,7 +617,8 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         }
         .${editorIdRef.current} .ql-container {
           border: none;
-          font-size: inherit;
+          /* Beat Quill snow's font-size: 13px so em/rem layout matches view mode */
+          font-size: inherit !important;
           font-family: inherit;
           width: 100%;
           min-width: 0;
@@ -574,7 +628,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           min-height: 1.5rem;
           color: #374151 !important;
           line-height: 1.42;
-          font-size: inherit;
+          font-size: inherit !important;
           font-weight: inherit;
           white-space: pre-wrap;
           overflow-wrap: break-word;
@@ -583,7 +637,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         }
         .${editorIdRef.current} .ql-editor * {
           color: inherit;
-          font-size: inherit;
+          font-size: inherit !important;
         }
         /* Ensure all text elements match display mode exactly */
         .${editorIdRef.current} .ql-editor p,
@@ -642,6 +696,15 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         .${editorIdRef.current} .ql-editor.ql-blank::before {
           color: #9ca3af;
           font-style: italic;
+        }
+        .${editorIdRef.current}.wysiwyg-readonly {
+          cursor: text;
+        }
+        .${editorIdRef.current}.wysiwyg-readonly .ql-editor {
+          cursor: text;
+        }
+        .${editorIdRef.current}.wysiwyg-readonly .ql-toolbar {
+          display: none !important;
         }
         .${editorIdRef.current} .ql-toolbar {
           position: absolute;
